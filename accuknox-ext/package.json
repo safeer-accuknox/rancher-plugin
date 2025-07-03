@@ -1,0 +1,27 @@
+{
+  "name": "accuknox-ext",
+  "version": "0.1.0",
+  "private": false,
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "@rancher/shell": "^2.0.3"
+  },
+  "resolutions": {
+    "@aws-sdk/types": "3.714.0",
+    "@aws-sdk/util-locate-window": "3.693.0",
+    "@types/node": "18.11.9",
+    "@types/lodash": "4.17.5",
+    "nopt": "7.2.0"
+  },
+  "scripts": {
+    "dev": "NODE_ENV=dev ./node_modules/.bin/vue-cli-service serve",
+    "build": "./node_modules/.bin/vue-cli-service build",
+    "clean": "./node_modules/@rancher/shell/scripts/clean",
+    "build-pkg": "./node_modules/@rancher/shell/scripts/build-pkg.sh",
+    "serve-pkgs": "./node_modules/@rancher/shell/scripts/serve-pkgs",
+    "publish-pkgs": "./node_modules/@rancher/shell/scripts/extension/publish",
+    "parse-tag-name": "./node_modules/@rancher/shell/scripts/extension/parse-tag-name"
+  }
+}
