@@ -3,17 +3,14 @@
   "version": "0.1.0",
   "private": false,
   "engines": {
-    "node": ">=16"
+    "node": ">=20"
   },
   "dependencies": {
-    "@rancher/shell": "^2.0.3"
+    "@rancher/shell": "^3.0.4"
   },
   "resolutions": {
-    "@aws-sdk/types": "3.714.0",
-    "@aws-sdk/util-locate-window": "3.693.0",
-    "@types/node": "18.11.9",
-    "@types/lodash": "4.17.5",
-    "nopt": "7.2.0"
+    "@types/node": "~20.10.0",
+    "@types/lodash": "4.17.5"
   },
   "scripts": {
     "dev": "NODE_ENV=dev ./node_modules/.bin/vue-cli-service serve",
