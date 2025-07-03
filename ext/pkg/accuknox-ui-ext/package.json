@@ -1,0 +1,34 @@
+{
+  "name": "neuvector-ui-ext",
+  "description": "NeuVector extension for Rancher Manager",
+  "version": "1.1.0",
+  "private": false,
+  "icon": "https://raw.githubusercontent.com/neuvector/manager-ext/main/pkg/neuvector-ui-ext/nv-icon.svg",
+  "rancher": {
+    "annotations": {
+      "catalog.cattle.io/kube-version": ">= v1.16.0-0 < v1.31.0-0",
+      "catalog.cattle.io/display-name": "NeuVector UI Extension",
+      "catalog.cattle.io/rancher-version": ">= 2.9.0",
+      "catalog.cattle.io/ui-extensions-version": ">= 2.0.1"
+    }
+  },
+  "scripts": {
+    "dev": "./node_modules/.bin/nuxt dev",
+    "nuxt": "./node_modules/.bin/nuxt"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "5.0.8",
+    "@vue/cli-plugin-typescript": "5.0.8",
+    "@vue/cli-service": "5.0.8"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
