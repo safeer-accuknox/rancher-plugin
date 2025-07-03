@@ -1,1 +1,21 @@
-module.exports = require('@rancher/shell/babel.config.js');
+module.exports = {
+    env: {
+      test: {
+        plugins: [
+          [
+            'module-resolver',
+            {
+              root:  ['.'],
+              alias: {
+                '@':           '.',
+                '~':           '.',
+                '@accuknox': './pkg/accuknox',
+              },
+            },
+          ],
+        ],
+        presets: ['@babel/preset-env'],
+      },
+    },
+  };
+  
