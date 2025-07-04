@@ -30,26 +30,62 @@ export default {
 
   mixins: [ResourceFetch],
 
-  async fetch() {
-    if ( !this.uiService ) {
-      this.debouncedRefreshCharts = debounce((init = false) => {
-        refreshCharts({
-          store: this.$store, chartName: ACCUKNOX_CHARTS.AGENTS, init
+async fetch() {
+  if (!this.uiService) {
+    this.debouncedRefreshCharts = debounce((init = false) => {
+      refreshCharts({
+        store: this.$store,
+        chartName: ACCUKNOX_CHARTS.AGENTS,
+        init
+      });
+    }, 500);
+
+    this.reloadReady = false;
+
+    const REPO_NAME = 'kubearmor-charts';
+    const REPO_URL = 'https://kubearmor.github.io/charts/';
+    const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
+
+    // First load cluster repos
+    await this.$fetchType(CATALOG.CLUSTER_REPO);
+
+    const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
+    const found = allRepos?.find(r => r.metadata?.name === REPO_NAME);
+
+    console.log(`🔍 Checking repo "${REPO_NAME}"`, found ? '✅ Exists' : '❌ Not Found');
+
+    if (!found) {
+      try {
+        console.log(`📦 Creating new repo "${REPO_NAME}" with URL "${REPO_URL}"`);
+
+        const repo = await this.$store.dispatch('cluster/create', {
+          type: CLUSTER_REPO_TYPE,
+          metadata: { name: REPO_NAME },
+          spec: {
+            url: REPO_URL,
+            forceUpdate: "true"   // ← Fix: string not boolean
+          }
         });
-      }, 500);
 
-      console.log("TEST", ACCUKNOX_CHARTS.AGENTS)
+        await repo.save();
 
-      this.reloadReady = false;
+        // Wait a bit for Rancher backend to process new repo
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
-      await this.$fetchType(CATALOG.CLUSTER_REPO);
-
-      if ( !this.accuknxoRepo || !this.controllerChart ) {
-        console.log("TEST2")
-        this.debouncedRefreshCharts(true);
+        console.log('🔄 Refreshing catalog...');
+        await this.$store.dispatch('catalog/refresh');
+      } catch (e) {
+        console.error('❌ Failed to create cluster repo:', e);
+        handleGrowl({ error: e, store: this.$store });
       }
     }
-  },
+
+    if (!this.accuknxoRepo || !this.controllerChart) {
+      console.log('🚀 Chart not yet detected, refreshing...');
+      this.debouncedRefreshCharts(true);
+    }
+  }
+},
 
   data() {
    return {
