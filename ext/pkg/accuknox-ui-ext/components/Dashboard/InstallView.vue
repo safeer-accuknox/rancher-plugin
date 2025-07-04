@@ -30,69 +30,74 @@ export default {
 
   mixins: [ResourceFetch],
 
-async fetch() {
-  if (!this.uiService) {
-    this.debouncedRefreshCharts = debounce((init = false) => {
-      refreshCharts({
-        store: this.$store,
-        chartName: ACCUKNOX_CHARTS.AGENTS,
-        init
-      });
-    }, 500);
-
-    this.reloadReady = false;
-
-    const REPO_NAME = 'kubearmor-charts';
-    const REPO_URL = 'https://kubearmor.github.io/charts/';
-    const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
-
-    // First load cluster repos
-    await this.$fetchType(CATALOG.CLUSTER_REPO);
-
-    const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
-    const found = allRepos?.find(r => r.metadata?.name === REPO_NAME);
-
-    console.log(`🔍 Checking repo "${REPO_NAME}"`, found ? '✅ Exists' : '❌ Not Found');
-
-    if (!found) {
-      try {
-        console.log(`📦 Creating new repo "${REPO_NAME}" with URL "${REPO_URL}"`);
-
-        const repo = await this.$store.dispatch('cluster/create', {
-          type: CLUSTER_REPO_TYPE,
-          metadata: { name: REPO_NAME },
-          spec: {
-            url: REPO_URL,
-            forceUpdate: "true"   // ← Fix: string not boolean
-          }
+  async fetch() {
+    if (!this.uiService) {
+      this.debouncedRefreshCharts = debounce((init = false) => {
+        refreshCharts({
+          store: this.$store,
+          chartName: ACCUKNOX_CHARTS.AGENTS,
+          init
         });
+      }, 500);
 
-        await repo.save();
+      this.reloadReady = false;
 
-        // Wait a bit for Rancher backend to process new repo
-        await new Promise(resolve => setTimeout(resolve, 3000));
+      const REPOS = [
+        {
+          name: 'kubearmor-charts',
+          url: 'https://kubearmor.github.io/charts/'
+        },
+        {
+          name: 'accuknox-agents',
+          url: 'oci://public.ecr.aws/k9v9d5v2/agents-chart'
+        }
+      ];
 
-        console.log('🔄 Refreshing catalog...');
-        await this.$store.dispatch('catalog/refresh');
-      } catch (e) {
-        console.error('❌ Failed to create cluster repo:', e);
-        handleGrowl({ error: e, store: this.$store });
+      const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
+      await this.$fetchType(CATALOG.CLUSTER_REPO);
+
+      const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
+
+      for (const { name, url } of REPOS) {
+        const found = allRepos?.find(r => r.metadata?.name === name);
+
+        if (!found) {
+          try {
+            const repo = await this.$store.dispatch('cluster/create', {
+              type: CLUSTER_REPO_TYPE,
+              metadata: { name },
+              spec: {
+                url,
+                forceUpdate: "true"
+              }
+            });
+
+            await repo.save();
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            await this.$store.dispatch('catalog/refresh');
+            console.log(`✅ Added repo: ${name}`);
+          } catch (e) {
+            console.error(`❌ Failed to create cluster repo ${name}:`, e);
+            handleGrowl({ error: e, store: this.$store });
+          }
+        } else {
+          console.log(`✅ Repo already exists: ${name}`);
+        }
+      }
+
+      if (!this.accuknxoRepo || !this.controllerChart) {
+        console.log('🚀 Chart not yet detected, refreshing...');
+        this.debouncedRefreshCharts(true);
       }
     }
-
-    if (!this.accuknxoRepo || !this.controllerChart) {
-      console.log('🚀 Chart not yet detected, refreshing...');
-      this.debouncedRefreshCharts(true);
-    }
-  }
-},
+  },
 
   data() {
-   return {
-    debounceRefreshCharts: null,
-    reloadReady: false,
-    install: false,
-   }
+    return {
+      debounceRefreshCharts: null,
+      reloadReady: false,
+      install: false,
+    }
   },
 
   computed: {
@@ -102,11 +107,10 @@ async fetch() {
     }),
 
     controllerChart() {
-      console.log("TEST3", this.accuknxoRepo)
-      if ( this.accuknxoRepo ) {
+      if (this.accuknxoRepo) {
         return this.$store.getters['catalog/chart']({
-          repoName:  this.accuknxoRepo.id,
-          repoType:  'cluster',
+          repoName: this.accuknxoRepo.id,
+          repoType: 'cluster',
           chartName: ACCUKNOX_CHARTS.AGENTS
         });
       }
@@ -116,20 +120,17 @@ async fetch() {
 
     accuknxoRepo() {
       const chart1 = this.charts?.find(chart => chart.chartName === ACCUKNOX_CHARTS.AGENTS);
-      const repo1 = this.repos?.find(repo => repo.id === chart1?.repoName);
-
-      return repo1;
+      return this.repos?.find(repo => repo.id === chart1?.repoName);
     },
   },
 
   methods: {
     chartRoute() {
-      if ( !this.controllerChart ) {
+      if (!this.controllerChart) {
         try {
           this.debouncedRefreshCharts();
         } catch (e) {
           handleGrowl({ error: e, store: this.$store });
-
           return;
         }
       }
@@ -139,23 +140,23 @@ async fetch() {
       } = this.controllerChart;
       const latestStableVersion = getLatestStableVersion(versions);
 
-      if ( latestStableVersion ) {
+      if (latestStableVersion) {
         const query = {
           [REPO_TYPE]: repoType,
-          [REPO]:      repoName,
-          [CHART]:     chartName,
-          [VERSION]:   latestStableVersion.version
+          [REPO]: repoName,
+          [CHART]: chartName,
+          [VERSION]: latestStableVersion.version
         };
 
         this.$router.push({
-          name:   'c-cluster-apps-charts-install',
+          name: 'c-cluster-apps-charts-install',
           params: { cluster: this.currentCluster?.id || '_' },
           query,
         });
       } else {
         const error = {
           _statusText: this.t('accuknox.dashboard.appInstall.versionError.title'),
-          message:     this.t('accuknox.dashboard.appInstall.versionError.message')
+          message: this.t('accuknox.dashboard.appInstall.versionError.message')
         };
 
         handleGrowl({ error, store: this.$store });
@@ -170,10 +171,7 @@ async fetch() {
   <div v-else class="container">
     <div v-if="!install" class="title p-10">
       <div class="logo mt-20 mb-10">
-        <img
-          src="../../assets/accuknox-logo.svg"
-          height="64"
-        />
+        <img src="../../assets/accuknox-logo.svg" height="64" />
       </div>
       <h1 class="mb-20" data-testid="nv-install-title">
         {{ t("accuknox.title") }}
