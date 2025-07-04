@@ -118,8 +118,8 @@ export default {
         });
       } else {
         const error = {
-          _statusText: this.t('neuvector.dashboard.appInstall.versionError.title'),
-          message:     this.t('neuvector.dashboard.appInstall.versionError.message')
+          _statusText: this.t('accuknox.dashboard.appInstall.versionError.title'),
+          message:     this.t('accuknox.dashboard.appInstall.versionError.message')
         };
 
         handleGrowl({ error, store: this.$store });
@@ -135,22 +135,22 @@ export default {
     <div v-if="!install" class="title p-10">
       <div class="logo mt-20 mb-10">
         <img
-          src="../../assets/neuvector-logo.svg"
+          src="../../assets/accuknox-logo.svg"
           height="64"
         />
       </div>
       <h1 class="mb-20" data-testid="nv-install-title">
-        {{ t("neuvector.title") }}
+        {{ t("accuknox.title") }}
       </h1>
       <div class="description">
-        {{ t("neuvector.dashboard.description") }}
+        {{ t("accuknox.dashboard.description") }}
       </div>
       <div class="chart-route" v-if="!uiService">
         <Loading v-if="!controllerChart && !reloadReady" mode="relative" class="mt-20" />
         <template v-else-if="!controllerChart && reloadReady">
           <Banner color="warning">
             <span class="mb-20">
-              {{ t('neuvector.dashboard.appInstall.reload' ) }}
+              {{ t('accuknox.dashboard.appInstall.reload' ) }}
             </span>
             <button class="ml-10 btn btn-sm role-primary" @click="reload()">
               {{ t('generic.reload') }}
@@ -159,7 +159,7 @@ export default {
         </template>
         <template v-else>
           <button class="btn role-primary mt-20" data-testid="nv-app-install-button" :disabled="!controllerChart" @click.prevent="chartRoute">
-            {{ t("neuvector.dashboard.appInstall.button") }}
+            {{ t("accuknox.dashboard.appInstall.button") }}
           </button>
         </template>
       </div>
