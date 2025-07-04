@@ -9,7 +9,7 @@ module.exports = {
               alias: {
                 '@':           '.',
                 '~':           '.',
-                '@neuvector': './pkg/neuvector',
+                '@accuknox': './pkg/accuknox',
               },
             },
           ],

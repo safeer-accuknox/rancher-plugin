@@ -1,7 +1,6 @@
 import { importTypes } from '@rancher/auto-import';
 import { IPlugin, TableColumnLocation, PanelLocation, TabLocation } from '@shell/core/types';
-import neuvectorRouting from './routing/neuvector-routing';
-import neuvectorStore from './store/neuvector';
+import accuknoxRouting from './routing/accuknox-routing';
 import {
   NAMESPACE, POD, WORKLOAD_TYPES, INGRESS, SERVICE, NODE
 } from '@shell/config/types';
@@ -15,13 +14,9 @@ export default function(plugin: IPlugin) {
   // it will grab information such as `name` and `description`
   plugin.metadata = require('./package.json');
 
-  // Load NeuVector
-  plugin.addProduct(require('./neuvector'));
+  plugin.addProduct(require('./accuknox'));
 
   // // Add Vue Routes
-  plugin.addRoutes(neuvectorRouting);
-
-  // // Add Vuex store
-  // plugin.addDashboardStore(neuvectorStore.config.namespace, neuvectorStore.specifics, neuvectorStore.config);
+  plugin.addRoutes(accuknoxRouting);
 
 }

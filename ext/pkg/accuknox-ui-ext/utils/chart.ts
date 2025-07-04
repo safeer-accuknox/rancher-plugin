@@ -53,13 +53,10 @@ export async function refreshCharts(
 
     if (!chart) {
       try {
-        // TODO: Add Custom VueX store for neuvector: { refreshingCharts: false }
-        // store.dispatch("neuvector/updateRefreshingCharts", true);
         await store.dispatch("catalog/refresh");
       } catch (e) {
         handleGrowl({ error: e as any, store });
       } finally {
-        // store.dispatch("neuvector/updateRefreshingCharts", false);
       }
 
       if (retry < 2 && !init) {
