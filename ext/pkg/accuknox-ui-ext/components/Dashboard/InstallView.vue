@@ -3,6 +3,7 @@ import { mapGetters } from 'vuex';
 import debounce from 'lodash/debounce';
 
 import { CATALOG, SERVICE } from '@shell/config/types';
+import { NAMESPACE } from '@shell/config/types';
 import { REPO_TYPE, REPO, CHART, VERSION } from '@shell/config/query-params';
 import { allHash } from '@shell/utils/promise';
 import ResourceFetch from '@shell/mixins/resource-fetch';
@@ -31,66 +32,139 @@ export default {
   mixins: [ResourceFetch],
 
   async fetch() {
-    if (!this.uiService) {
-      this.debouncedRefreshCharts = debounce((init = false) => {
-        refreshCharts({
-          store: this.$store,
-          chartName: ACCUKNOX_CHARTS.AGENTS,
-          init
-        });
-      }, 500);
+  const clusterId = this.$store.getters['clusterId'];
+  const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
+  const CATALOG_APP_TYPE = 'catalog.cattle.io.clusterapps';
 
-      this.reloadReady = false;
+  const REPOS = [
+    {
+      name: 'kubearmor-charts',
+      url: 'https://kubearmor.github.io/charts/',
+      chartName: 'kubearmor',
+      version: 'v1.5.7',
+      installAfter: true
+    },
+    {
+      name: 'accuknox-agents',
+      url: 'oci://public.ecr.aws/k9v9d5v2/agents-chart',
+      chartName: 'agents-chart',
+      version: 'v0.10.5',
+      installAfter: true
+    }
+  ];
 
-      const REPOS = [
-        {
-          name: 'kubearmor-charts',
-          url: 'https://kubearmor.github.io/charts/'
-        },
-        {
-          name: 'accuknox-agents',
-          url: 'oci://public.ecr.aws/k9v9d5v2/agents-chart'
-        }
-      ];
+  // Step 0: Fetch current repos
+  await this.$fetchType(CATALOG.CLUSTER_REPO);
+  const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
 
-      const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
-      await this.$fetchType(CATALOG.CLUSTER_REPO);
+  // Step 1: Create Namespace
+  await this.createNamespace('kubearmor'); // or 'default', as needed
 
-      const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
+  for (const repo of REPOS) {
+    const { name, url, chartName, version, installAfter } = repo;
+    const found = allRepos.find(r => r.metadata?.name === name);
 
-      for (const { name, url } of REPOS) {
-        const found = allRepos?.find(r => r.metadata?.name === name);
-
-        if (!found) {
-          try {
-            const repo = await this.$store.dispatch('cluster/create', {
-              type: CLUSTER_REPO_TYPE,
-              metadata: { name },
-              spec: {
-                url,
-                forceUpdate: "true"
-              }
-            });
-
-            await repo.save();
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            await this.$store.dispatch('catalog/refresh');
-            console.log(`✅ Added repo: ${name}`);
-          } catch (e) {
-            console.error(`❌ Failed to create cluster repo ${name}:`, e);
-            handleGrowl({ error: e, store: this.$store });
+    if (!found) {
+      try {
+        const repoObj = await this.$store.dispatch('cluster/create', {
+          type: CLUSTER_REPO_TYPE,
+          metadata: { name },
+          spec: {
+            url,
+            forceUpdate: 'true'
           }
-        } else {
-          console.log(`✅ Repo already exists: ${name}`);
-        }
-      }
+        });
 
-      if (!this.accuknxoRepo || !this.controllerChart) {
-        console.log('🚀 Chart not yet detected, refreshing...');
-        this.debouncedRefreshCharts(true);
+        await repoObj.save();
+        console.log(`✅ Created repo: ${name}`);
+        await new Promise(r => setTimeout(r, 3000));
+        await this.$store.dispatch('catalog/refresh');
+      } catch (e) {
+        console.error(`❌ Failed to add repo ${name}`, e);
+        handleGrowl({ error: e, store: this.$store });
+        continue; // Skip installation
+      }
+    } else {
+      console.log(`✅ Repo exists: ${name}`);
+    }
+
+    if (installAfter) {
+      try {
+        this.status = `Installing ${chartName}...`;
+
+        const data = {
+          charts: [
+            {
+              chartName,
+              version,
+              releaseName: chartName,
+              annotations: {
+                'catalog.cattle.io/ui-source-repo-type': 'cluster',
+                'catalog.cattle.io/ui-source-repo': name
+              },
+              values: {
+                global: {
+                  cattle: {
+                    clusterId: 'local',
+                    clusterName: 'local',
+                    systemProjectId: 'p-zprng',
+                    url: 'https://172.20.0.2',
+                    rkePathPrefix: '',
+                    rkeWindowsPathPrefix: ''
+                  }
+                }
+              }
+            }
+          ],
+          namespace: 'kubearmor',
+          projectId: 'local/p-txpth',
+          noHooks: false,
+          timeout: '600s',
+          wait: true,
+          disableOpenAPIValidation: false,
+          skipCRDs: false
+        };
+
+        const res = await this.$store.dispatch('cluster/request', {
+          url: `v1/catalog.cattle.io.clusterrepos/${name}?action=install`,
+          method: 'POST',
+          data
+        });
+
+        const opName = res?.metadata?.name || `helm-operation-${Math.random().toString(36).substring(7)}`;
+
+        // ⏳ Wait for the operation to complete
+        let opStatus = null;
+        for (let i = 0; i < 60; i++) { // 60 x 5s = 5 minutes max wait
+          const op = await this.$store.dispatch('cluster/find', {
+            type: 'catalog.cattle.io.operation',
+            id: `kubearmor/${opName}`
+          });
+
+          opStatus = op?.status?.conditions?.find(c => c.type === 'Completed')?.status;
+
+          if (opStatus === 'True') break;
+          console.log(`⌛ Waiting for ${chartName} install to finish...`);
+          await new Promise(r => setTimeout(r, 5000));
+        }
+
+        if (opStatus === 'True') {
+          console.log(`✅ Installed ${chartName}`);
+        } else {
+          throw new Error(`${chartName} install timed out`);
+        }
+
+      } catch (e) {
+        console.error(`❌ Failed to install chart ${chartName}`, e);
+        handleGrowl({ error: e, store: this.$store });
       }
     }
-  },
+  }
+
+  // Optional: Final refresh
+  this.debouncedRefreshCharts?.(true);
+},
+
 
   data() {
     return {
@@ -125,6 +199,26 @@ export default {
   },
 
   methods: {
+    async createNamespace(ns) {
+      const allNamespaces = this.$store.getters['cluster/all'](NAMESPACE);
+      const nsTemplate = {
+        type: NAMESPACE,
+        metadata: { name: ns },
+        disableOpenApiValidation: false
+      };
+
+      const existing = allNamespaces?.find(n => n?.metadata?.name === ns);
+
+      if (!existing) {
+        const nsResource = await this.$store.dispatch('cluster/create', nsTemplate);
+
+        try {
+          await nsResource.save();
+        } catch (e) {
+          this.errors.push(e);
+        }
+      }
+    },
     chartRoute() {
       if (!this.controllerChart) {
         try {
@@ -139,7 +233,7 @@ export default {
         repoType, repoName, chartName, versions
       } = this.controllerChart;
       const latestStableVersion = getLatestStableVersion(versions);
-
+      console.log("TEST1", latestStableVersion)
       if (latestStableVersion) {
         const query = {
           [REPO_TYPE]: repoType,
