@@ -32,140 +32,17 @@ export default {
   mixins: [ResourceFetch],
 
   async fetch() {
-  const clusterId = this.$store.getters['clusterId'];
-  const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
-  const CATALOG_APP_TYPE = 'catalog.cattle.io.clusterapps';
+    this.clusterId = this.$store.getters['clusterId'];
+    this.clusterName = this.$store.getters['currentCluster']?.nameDisplay;
+    this.url = window.location.origin;
 
-  const REPOS = [
-    {
-      name: 'kubearmor-charts',
-      url: 'https://kubearmor.github.io/charts/',
-      chartName: 'kubearmor',
-      version: 'v1.5.7',
-      installAfter: true,
-      namespace: 'kubearmor' 
-    },
-    {
-      name: 'accuknox-agents',
-      url: 'oci://public.ecr.aws/k9v9d5v2/agents-chart',
-      chartName: 'agents-chart',
-      version: 'v0.10.5',
-      installAfter: true,
-      namespace: 'agents' 
-    }
-  ];
+    await this.$fetchType('management.cattle.io.project');
+    const allProjects = this.$store.getters['management/all']('management.cattle.io.project');
+    const clusterProjects = allProjects.filter(p => p.spec?.clusterName === this.clusterId);
 
-  // Step 0: Fetch current repos
-  await this.$fetchType(CATALOG.CLUSTER_REPO);
-  const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
-
-  // Step 1: Create Namespace
-  await this.createNamespace('kubearmor'); // or 'default', as needed
-
-  for (const repo of REPOS) {
-    const { name, url, chartName, version, installAfter, namespace } = repo;
-    const found = allRepos.find(r => r.metadata?.name === name);
-
-    if (!found) {
-      try {
-        const repoObj = await this.$store.dispatch('cluster/create', {
-          type: CLUSTER_REPO_TYPE,
-          metadata: { name },
-          spec: {
-            url,
-            forceUpdate: 'true'
-          }
-        });
-
-        await repoObj.save();
-        console.log(`✅ Created repo: ${name}`);
-        await new Promise(r => setTimeout(r, 3000));
-        await this.$store.dispatch('catalog/refresh');
-      } catch (e) {
-        console.error(`❌ Failed to add repo ${name}`, e);
-        handleGrowl({ error: e, store: this.$store });
-        continue; // Skip installation
-      }
-    } else {
-      console.log(`✅ Repo exists: ${name}`);
-    }
-
-    if (installAfter) {
-      try {
-        this.status = `Installing ${chartName}...`;
-
-        const data = {
-          charts: [
-            {
-              chartName,
-              version,
-              releaseName: chartName,
-              annotations: {
-                'catalog.cattle.io/ui-source-repo-type': 'cluster',
-                'catalog.cattle.io/ui-source-repo': name
-              },
-              values: {
-                global: {
-                  cattle: {
-                    clusterId: 'local',
-                    clusterName: 'local',
-                    systemProjectId: 'p-zprng',
-                    url: 'https://172.20.0.2',
-                    rkePathPrefix: '',
-                    rkeWindowsPathPrefix: ''
-                  }
-                }
-              }
-            }
-          ],
-          namespace,
-          projectId: 'local/p-txpth',
-          noHooks: false,
-          timeout: '600s',
-          wait: true,
-          disableOpenAPIValidation: false,
-          skipCRDs: false
-        };
-
-        const res = await this.$store.dispatch('cluster/request', {
-          url: `v1/catalog.cattle.io.clusterrepos/${name}?action=install`,
-          method: 'POST',
-          data
-        });
-
-        const opName = res?.metadata?.name || `helm-operation-${Math.random().toString(36).substring(7)}`;
-
-        // ⏳ Wait for the operation to complete
-        let opStatus = null;
-        for (let i = 0; i < 60; i++) { // 60 x 5s = 5 minutes max wait
-          const op = await this.$store.dispatch('cluster/find', {
-            type: 'catalog.cattle.io.operation',
-            id: `kubearmor/${opName}`
-          });
-
-          opStatus = op?.status?.conditions?.find(c => c.type === 'Completed')?.status;
-
-          if (opStatus === 'True') break;
-          console.log(`⌛ Waiting for ${chartName} install to finish...`);
-          await new Promise(r => setTimeout(r, 5000));
-        }
-
-        if (opStatus === 'True') {
-          console.log(`✅ Installed ${chartName}`);
-        } else {
-          throw new Error(`${chartName} install timed out`);
-        }
-
-      } catch (e) {
-        console.error(`❌ Failed to install chart ${chartName}`, e);
-        handleGrowl({ error: e, store: this.$store });
-      }
-    }
-  }
-
-  this.debouncedRefreshCharts?.(true);
-},
-
+    this.projectId = `${this.clusterId}/${clusterProjects[0].metadata.name}`
+    this.systemProjectId = clusterProjects[1].metadata.name
+  },
 
   data() {
     return {
@@ -220,43 +97,136 @@ export default {
         }
       }
     },
-    chartRoute() {
-      if (!this.controllerChart) {
-        try {
-          this.debouncedRefreshCharts();
-        } catch (e) {
-          handleGrowl({ error: e, store: this.$store });
-          return;
+    async deploy() {
+      const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
+
+      const REPOS = [
+        {
+          name: 'kubearmor-charts',
+          url: 'https://kubearmor.github.io/charts/',
+          chartName: 'kubearmor',
+          version: 'v1.5.7',
+          installAfter: true,
+          namespace: 'kubearmor' 
+        },
+        {
+          name: 'accuknox-agents',
+          url: 'oci://public.ecr.aws/k9v9d5v2/agents-chart',
+          chartName: 'agents-chart',
+          version: 'v0.10.5',
+          installAfter: true,
+          namespace: 'agents' 
+        }
+      ];
+
+      // Step 0: Fetch current repos
+      await this.$fetchType(CATALOG.CLUSTER_REPO);
+      const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
+
+      for (const repo of REPOS) {
+        const { name, url, chartName, version, installAfter, namespace } = repo;
+        await this.createNamespace(namespace);
+        const found = allRepos.find(r => r.metadata?.name === name);
+
+        if (!found) {
+          try {
+            const repoObj = await this.$store.dispatch('cluster/create', {
+              type: CLUSTER_REPO_TYPE,
+              metadata: { name },
+              spec: {
+                url,
+                forceUpdate: 'true'
+              }
+            });
+
+            await repoObj.save();
+            console.log(`✅ Created repo: ${name}`);
+            await new Promise(r => setTimeout(r, 3000));
+            await this.$store.dispatch('catalog/refresh');
+          } catch (e) {
+            console.error(`❌ Failed to add repo ${name}`, e);
+            handleGrowl({ error: e, store: this.$store });
+            continue; // Skip installation
+          }
+        } else {
+          console.log(`✅ Repo exists: ${name}`);
+        }
+
+        if (installAfter) {
+          try {
+            this.status = `Installing ${chartName}...`;
+
+            const data = {
+              charts: [
+                {
+                  chartName,
+                  version,
+                  releaseName: chartName,
+                  annotations: {
+                    'catalog.cattle.io/ui-source-repo-type': 'cluster',
+                    'catalog.cattle.io/ui-source-repo': name
+                  },
+                  values: {
+                    global: {
+                      cattle: {
+                        clusterId: this.clusterId,
+                        clusterName: this.clusterName,
+                        systemProjectId: this.systemProjectId,
+                        url: this.url,
+                        rkePathPrefix: '',
+                        rkeWindowsPathPrefix: ''
+                      }
+                    }
+                  }
+                }
+              ],
+              namespace,
+              projectId: this.projectId,
+              noHooks: false,
+              timeout: '600s',
+              wait: true,
+              disableOpenAPIValidation: false,
+              skipCRDs: false
+            };
+
+            const res = await this.$store.dispatch('cluster/request', {
+              url: `v1/catalog.cattle.io.clusterrepos/${name}?action=install`,
+              method: 'POST',
+              data
+            });
+
+            // const opName = res?.metadata?.name || `helm-operation-${Math.random().toString(36).substring(7)}`;
+
+            // // ⏳ Wait for the operation to complete
+            // let opStatus = null;
+            // for (let i = 0; i < 60; i++) { // 60 x 5s = 5 minutes max wait
+            //   const op = await this.$store.dispatch('cluster/find', {
+            //     type: 'catalog.cattle.io.operation',
+            //     id: `kubearmor/${opName}`
+            //   });
+
+            //   opStatus = op?.status?.conditions?.find(c => c.type === 'Completed')?.status;
+
+            //   if (opStatus === 'True') break;
+            //   console.log(`⌛ Waiting for ${chartName} install to finish...`);
+            //   await new Promise(r => setTimeout(r, 5000));
+            // }
+
+            // if (opStatus === 'True') {
+            //   console.log(`✅ Installed ${chartName}`);
+            // } else {
+            //   throw new Error(`${chartName} install timed out`);
+            // }
+
+          } catch (e) {
+            console.error(`❌ Failed to install chart ${chartName}`, e);
+            handleGrowl({ error: e, store: this.$store });
+          }
         }
       }
 
-      const {
-        repoType, repoName, chartName, versions
-      } = this.controllerChart;
-      const latestStableVersion = getLatestStableVersion(versions);
-      console.log("TEST1", latestStableVersion)
-      if (latestStableVersion) {
-        const query = {
-          [REPO_TYPE]: repoType,
-          [REPO]: repoName,
-          [CHART]: chartName,
-          [VERSION]: latestStableVersion.version
-        };
-
-        this.$router.push({
-          name: 'c-cluster-apps-charts-install',
-          params: { cluster: this.currentCluster?.id || '_' },
-          query,
-        });
-      } else {
-        const error = {
-          _statusText: this.t('accuknox.dashboard.appInstall.versionError.title'),
-          message: this.t('accuknox.dashboard.appInstall.versionError.message')
-        };
-
-        handleGrowl({ error, store: this.$store });
-      }
-    }
+      this.debouncedRefreshCharts?.(true);
+    },
   }
 };
 </script>
@@ -287,7 +257,7 @@ export default {
           </Banner>
         </template>
         <template v-else>
-          <button class="btn role-primary mt-20" data-testid="nv-app-install-button" :disabled="!controllerChart" @click.prevent="chartRoute">
+          <button class="btn role-primary mt-20" data-testid="nv-app-install-button" :disabled="!controllerChart" @click.prevent="deploy">
             {{ t("accuknox.dashboard.appInstall.button") }}
           </button>
         </template>
