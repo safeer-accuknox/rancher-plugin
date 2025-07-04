@@ -1,5 +1,5 @@
 export const ACCUKNOX_CONST = {
-    AGENT_SERVICE: 'accuknox-agent',
+    AGENT_SERVICE: 'accuknox-agents',
 };
   
 
@@ -13,5 +13,5 @@ export const RANCHER_CONST = {
 };
 
 export const ACCUKNOX_CHARTS = {
-  CONTROLLER: "accuknox-agent",
+  AGENTS: "agents-chart",
 };

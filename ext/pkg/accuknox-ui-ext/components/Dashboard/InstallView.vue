@@ -11,6 +11,7 @@ import { Banner } from '@components/Banner';
 import Loading from '@shell/components/Loading';
 
 import { NEUVECTOR_CHARTS } from '../../types';
+import { ACCUKNOX_CHARTS } from '../../types/accuknox';
 import { getLatestStableVersion } from '../../plugins/neuvector-class';
 import { handleGrowl } from '../../utils/handle-growl';
 import { refreshCharts } from '../../utils/chart';
@@ -34,15 +35,18 @@ export default {
     if ( !this.uiService ) {
       this.debouncedRefreshCharts = debounce((init = false) => {
         refreshCharts({
-          store: this.$store, chartName: NEUVECTOR_CHARTS.CONTROLLER, init
+          store: this.$store, chartName: ACCUKNOX_CHARTS.AGENTS, init
         });
       }, 500);
+
+      console.log("TEST", ACCUKNOX_CHARTS.AGENTS)
 
       this.reloadReady = false;
 
       await this.$fetchType(CATALOG.CLUSTER_REPO);
 
       if ( !this.neuvectorRepo || !this.controllerChart ) {
+        console.log("TEST2")
         this.debouncedRefreshCharts(true);
       }
     }
@@ -63,11 +67,12 @@ export default {
     }),
 
     controllerChart() {
+      console.log("TEST3", this.neuvectorRepo)
       if ( this.neuvectorRepo ) {
         return this.$store.getters['catalog/chart']({
           repoName:  this.neuvectorRepo.id,
           repoType:  'cluster',
-          chartName: NEUVECTOR_CHARTS.CONTROLLER
+          chartName: ACCUKNOX_CHARTS.AGENTS
         });
       }
 
@@ -75,9 +80,10 @@ export default {
     },
 
     neuvectorRepo() {
-      const chart = this.charts?.find(chart => chart.chartName === NEUVECTOR_CHARTS.CONTROLLER);
+      const chart1 = this.charts?.find(chart => chart.chartName === ACCUKNOX_CHARTS.AGENTS);
+      const repo1 = this.repos?.find(repo => repo.id === chart1?.repoName);
 
-      return this.repos?.find(repo => repo.id === chart?.repoName);
+      return repo1;
     },
   },
 
