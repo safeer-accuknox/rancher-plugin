@@ -45,7 +45,7 @@ export default {
 
       await this.$fetchType(CATALOG.CLUSTER_REPO);
 
-      if ( !this.neuvectorRepo || !this.controllerChart ) {
+      if ( !this.accuknxoRepo || !this.controllerChart ) {
         console.log("TEST2")
         this.debouncedRefreshCharts(true);
       }
@@ -67,10 +67,10 @@ export default {
     }),
 
     controllerChart() {
-      console.log("TEST3", this.neuvectorRepo)
-      if ( this.neuvectorRepo ) {
+      console.log("TEST3", this.accuknxoRepo)
+      if ( this.accuknxoRepo ) {
         return this.$store.getters['catalog/chart']({
-          repoName:  this.neuvectorRepo.id,
+          repoName:  this.accuknxoRepo.id,
           repoType:  'cluster',
           chartName: ACCUKNOX_CHARTS.AGENTS
         });
@@ -79,7 +79,7 @@ export default {
       return null;
     },
 
-    neuvectorRepo() {
+    accuknxoRepo() {
       const chart1 = this.charts?.find(chart => chart.chartName === ACCUKNOX_CHARTS.AGENTS);
       const repo1 = this.repos?.find(repo => repo.id === chart1?.repoName);
 
