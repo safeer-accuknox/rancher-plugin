@@ -201,16 +201,16 @@
       left: -5px;
     }
     .radio:checked ~ .sec-event-content:after {
-      border-right-color: $neuvector-grey-50//#fefff6;
+      border-right-color: $accuknox-grey-50//#fefff6;
     }
     .radio:checked ~ .sec-event-content {
       max-height: 400px;
-      border-color: $neuvector-grey-200;//#d5db98;
+      border-color: $accuknox-grey-200;//#d5db98;
       margin-right: 20px;
       transform: translateX(20px);
       transition: transform 0.1s linear;
       // background-color: rgba(213, 219, 152, .1);
-      background-color: $neuvector-grey-50;//#fefff6;
+      background-color: $accuknox-grey-50;//#fefff6;
     }
     .radio:checked ~ .sec-event-content div {
       max-height: 400px;
@@ -285,7 +285,7 @@
       border-top: 0;
       box-sizing: border-box;
       padding: 5px;
-      background-color: $neuvector-grey-50; //$neuvector-light-green-50;
+      background-color: $accuknox-grey-50; //$accuknox-light-green-50;
     }
     
     .full-width-flag {

@@ -7,11 +7,11 @@
 }
 
 .label-primary {
-    background-color: $neuvector-mid-green-700;
+    background-color: $accuknox-mid-green-700;
 }
 
 .label-muted {
-    background-color: $neuvector-grey-700;
+    background-color: $accuknox-grey-700;
 }
 
 .label-pink {
@@ -70,7 +70,7 @@
   
     &.fed-rule {
       border: 1px solid #000;
-      background-color: $neuvector-grey-900;
+      background-color: $accuknox-grey-900;
       color: #fff;
     }
   
@@ -104,7 +104,7 @@
       color: #fff;
     }
     &.incident {
-      background-color: $neuvector-grey-500;
+      background-color: $accuknox-grey-500;
       color: #fff;
     }
     &.event {
@@ -120,7 +120,7 @@
       color: #fff;
     }
     &.benchmark {
-      background-color: $neuvector-mid-green-500;
+      background-color: $accuknox-mid-green-500;
       color: #fff;
     }
     &.info {
