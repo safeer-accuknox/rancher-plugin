@@ -42,14 +42,16 @@ export default {
       url: 'https://kubearmor.github.io/charts/',
       chartName: 'kubearmor',
       version: 'v1.5.7',
-      installAfter: true
+      installAfter: true,
+      namespace: 'kubearmor' 
     },
     {
       name: 'accuknox-agents',
       url: 'oci://public.ecr.aws/k9v9d5v2/agents-chart',
       chartName: 'agents-chart',
       version: 'v0.10.5',
-      installAfter: true
+      installAfter: true,
+      namespace: 'agents' 
     }
   ];
 
@@ -61,7 +63,7 @@ export default {
   await this.createNamespace('kubearmor'); // or 'default', as needed
 
   for (const repo of REPOS) {
-    const { name, url, chartName, version, installAfter } = repo;
+    const { name, url, chartName, version, installAfter, namespace } = repo;
     const found = allRepos.find(r => r.metadata?.name === name);
 
     if (!found) {
@@ -116,7 +118,7 @@ export default {
               }
             }
           ],
-          namespace: 'kubearmor',
+          namespace,
           projectId: 'local/p-txpth',
           noHooks: false,
           timeout: '600s',
@@ -161,7 +163,6 @@ export default {
     }
   }
 
-  // Optional: Final refresh
   this.debouncedRefreshCharts?.(true);
 },
 
