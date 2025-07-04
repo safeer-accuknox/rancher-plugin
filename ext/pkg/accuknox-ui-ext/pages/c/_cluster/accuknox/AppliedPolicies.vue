@@ -1,13 +1,12 @@
 <script>
-import DashboardView from '../../../../components/Dashboard/DashboardView';
 import InstallView from '../../../../components/Dashboard/InstallView';
 import { SERVICE } from '@shell/config/types';
-import { RANCHER_CONST, NV_CONST } from '../../../../types/neuvector';
+import { RANCHER_CONST, ACCUKNOX_CONST } from '../../../../types/accuknox';
 
 export default {
   name: 'Dashboard',
 
-  components: { DashboardView, InstallView },
+  components: { InstallView },
 
   async fetch() {
     if ( this.$store.getters['cluster/canList'](SERVICE) ) {
@@ -25,25 +24,10 @@ export default {
   computed: {
     uiService() {
       if ( Array.isArray(this.allServices) && this.allServices.length ) {
-        return this.allServices.find(svc => svc?.id?.includes(NV_CONST.NV_SERVICE));
+        return this.allServices.find(svc => svc?.id?.includes(ACCUKNOX_CONST.AGENT_SERVICE));
       }
 
       return null;
-    },
-    rancherTheme: function() {
-      const decodedCookie = decodeURIComponent(document.cookie);
-      const cookieArray = decodedCookie.split(';');
-      let rTheme = cookieArray.find(item => item.includes('R_THEME'));
-      let rPcs = cookieArray.find(item => item.includes('R_PCS'));
-      let res = rTheme && rTheme.split('=')[1] !== RANCHER_CONST.THEME.AUTO ?
-        rTheme.split('=')[1] : 
-        (rPcs ? rPcs.split('=')[1] : RANCHER_CONST.THEME.LIGHT);
-      sessionStorage.setItem(RANCHER_CONST.R_THEME, res);
-      console.log(
-        'Rancher theme',
-        res
-      );
-      return res;
     },
   }
 };
@@ -51,5 +35,4 @@ export default {
 
 <template>
   <InstallView v-if="!uiService" :ui-service="uiService" />
-  <DashboardView v-else :ns="uiService.metadata.namespace" :rancherTheme="rancherTheme"/>
 </template>
