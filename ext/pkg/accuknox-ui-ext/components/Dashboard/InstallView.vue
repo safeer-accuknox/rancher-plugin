@@ -10,9 +10,8 @@ import ResourceFetch from '@shell/mixins/resource-fetch';
 import { Banner } from '@components/Banner';
 import Loading from '@shell/components/Loading';
 
-import { NEUVECTOR_CHARTS } from '../../types';
 import { ACCUKNOX_CHARTS } from '../../types/accuknox';
-import { getLatestStableVersion } from '../../plugins/neuvector-class';
+import { getLatestStableVersion } from '../../plugins/accuknox-class';
 import { handleGrowl } from '../../utils/handle-growl';
 import { refreshCharts } from '../../utils/chart';
 
