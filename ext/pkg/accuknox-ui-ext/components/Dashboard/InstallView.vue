@@ -26,7 +26,7 @@ export default {
 
   components: {
     Banner,
-    Loading
+    Loading,
   },
 
   mixins: [ResourceFetch],
@@ -54,6 +54,8 @@ export default {
         admissionController: false,
         kyverno: false,
       },
+      showModal: false,
+      isInstalling: false,
       debounceRefreshCharts: null,
       reloadReady: false,
       install: false,
@@ -74,7 +76,6 @@ export default {
           chartName: ACCUKNOX_CHARTS.AGENTS
         });
       }
-
       return null;
     },
 
@@ -94,10 +95,8 @@ export default {
       };
 
       const existing = allNamespaces?.find(n => n?.metadata?.name === ns);
-
       if (!existing) {
         const nsResource = await this.$store.dispatch('cluster/create', nsTemplate);
-
         try {
           await nsResource.save();
         } catch (e) {
@@ -105,9 +104,11 @@ export default {
         }
       }
     },
-    async deploy() {
-      const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
 
+    async deploy() {
+      this.isInstalling = true;
+
+      const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
       const REPOS = [
         {
           name: 'kubearmor-charts',
@@ -116,8 +117,7 @@ export default {
           version: 'v1.5.7',
           installAfter: true,
           namespace: 'kubearmor',
-          values: {
-          }
+          values: {}
         },
         {
           name: 'accuknox-agents',
@@ -137,9 +137,6 @@ export default {
         }
       ];
 
-      console.log(REPOS[1])
-
-      // Step 0: Fetch current repos
       await this.$fetchType(CATALOG.CLUSTER_REPO);
       const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
 
@@ -153,29 +150,20 @@ export default {
             const repoObj = await this.$store.dispatch('cluster/create', {
               type: CLUSTER_REPO_TYPE,
               metadata: { name },
-              spec: {
-                url,
-                forceUpdate: 'true'
-              }
+              spec: { url, forceUpdate: 'true' }
             });
 
             await repoObj.save();
-            console.log(`✅ Created repo: ${name}`);
             await new Promise(r => setTimeout(r, 3000));
             await this.$store.dispatch('catalog/refresh');
           } catch (e) {
-            console.error(`❌ Failed to add repo ${name}`, e);
             handleGrowl({ error: e, store: this.$store });
-            continue; // Skip installation
+            continue;
           }
-        } else {
-          console.log(`✅ Repo exists: ${name}`);
         }
 
         if (installAfter) {
           try {
-            this.status = `Installing ${chartName}...`;
-
             const data = {
               charts: [
                 {
@@ -210,44 +198,22 @@ export default {
               skipCRDs: false
             };
 
-            const res = await this.$store.dispatch('cluster/request', {
+            await this.$store.dispatch('cluster/request', {
               url: `v1/catalog.cattle.io.clusterrepos/${name}?action=install`,
               method: 'POST',
               data
             });
 
-            // const opName = res?.metadata?.name || `helm-operation-${Math.random().toString(36).substring(7)}`;
-
-            // // ⏳ Wait for the operation to complete
-            // let opStatus = null;
-            // for (let i = 0; i < 60; i++) { // 60 x 5s = 5 minutes max wait
-            //   const op = await this.$store.dispatch('cluster/find', {
-            //     type: 'catalog.cattle.io.operation',
-            //     id: `kubearmor/${opName}`
-            //   });
-
-            //   opStatus = op?.status?.conditions?.find(c => c.type === 'Completed')?.status;
-
-            //   if (opStatus === 'True') break;
-            //   console.log(`⌛ Waiting for ${chartName} install to finish...`);
-            //   await new Promise(r => setTimeout(r, 5000));
-            // }
-
-            // if (opStatus === 'True') {
-            //   console.log(`✅ Installed ${chartName}`);
-            // } else {
-            //   throw new Error(`${chartName} install timed out`);
-            // }
-
           } catch (e) {
-            console.error(`❌ Failed to install chart ${chartName}`, e);
             handleGrowl({ error: e, store: this.$store });
           }
         }
       }
 
-      this.debouncedRefreshCharts?.(true);
-    },
+      this.isInstalling = false;
+      this.showModal = false;
+      this.debounceRefreshCharts?.(true);
+    }
   }
 };
 </script>
@@ -262,32 +228,49 @@ export default {
       <h1 class="mb-20">{{ t("accuknox.title") }}</h1>
       <div class="description">{{ t("accuknox.dashboard.description") }}</div>
 
-      <div class="form-section mt-10">
-        <label>Join Token</label>
-        <input v-model="form.joinToken" class="input" placeholder="Enter Join Token" />
 
-        <label class="mt-4">Spire Host</label>
-        <input v-model="form.spireHost" class="input" placeholder="spire.example.com" />
+        <div>
+          <button @click="showModal = true" class="btn role-primary">
+            Install Now
+          </button>
 
-        <label class="mt-4">PPS Host</label>
-        <input v-model="form.ppsHost" class="input" placeholder="pps.example.com" />
+          <!-- Custom Modal -->
+          <div v-if="showModal" class="modal-overlay">
+            <div class="modal-content">
+              <h2>AccuKnox Agent Configuration</h2>
 
-        <label class="mt-4">Knox Gateway</label>
-        <input v-model="form.knoxGateway" class="input" placeholder="gateway.example.com" />
+              <label>Join Token</label>
+              <input v-model="form.joinToken" class="input" placeholder="Enter Join Token" />
 
-        <label class="mt-4">Enable Admission Controller</label>
-        <input type="checkbox" v-model="form.admissionController" />
+              <label class="mt-4">Spire Host</label>
+              <input v-model="form.spireHost" class="input" placeholder="spire.example.com" />
 
-        <label class="mt-4">Enable Kyverno</label>
-        <input type="checkbox" v-model="form.kyverno" />
+              <label class="mt-4">PPS Host</label>
+              <input v-model="form.ppsHost" class="input" placeholder="pps.example.com" />
 
-        <button class="btn role-primary mt-10" @click.prevent="deploy">
-          {{ t("accuknox.dashboard.appInstall.button") }}
-        </button>
-      </div>
+              <label class="mt-4">Knox Gateway</label>
+              <input v-model="form.knoxGateway" class="input" placeholder="gateway.example.com" />
+
+              <label class="mt-4">Enable Admission Controller</label>
+              <input type="checkbox" v-model="form.admissionController" />
+
+              <label class="mt-4">Enable Kyverno</label>
+              <input type="checkbox" v-model="form.kyverno" />
+
+              <div class="mt-6">
+                <button class="btn role-primary" @click="deploy">
+                  Install
+                </button>
+                <button class="btn ml-2" @click="showModal = false">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
     </div>
   </div>
 </template>
+
 <style lang="scss" scoped>
 .container {
   & .title {
@@ -311,5 +294,27 @@ export default {
   & .airgap-align {
     justify-content: start;
   }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  min-width: 400px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
 }
 </style>
