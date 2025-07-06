@@ -107,6 +107,7 @@ export default {
 
     async deploy() {
       this.isInstalling = true;
+      this.showModal = false;
 
       const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
       const REPOS = [
@@ -204,12 +205,21 @@ export default {
               data
             });
 
+            
           } catch (e) {
             handleGrowl({ error: e, store: this.$store });
           }
         }
       }
 
+      handleGrowl({
+        type: 'Success',
+        store: this.$store,
+        error: {
+          _statusText: 'Success',
+          message: 'AccuKnox agents installed successfully.'
+        }
+      });
       this.isInstalling = false;
       this.showModal = false;
       this.debounceRefreshCharts?.(true);
@@ -230,11 +240,17 @@ export default {
 
 
         <div>
-          <button @click="showModal = true" class="btn role-primary">
-            Install Now
+          <button class="btn role-primary" :disabled="isInstalling" @click="showModal = true">
+            <span v-if="isInstalling">
+              <span class="spinner" /> Installing...
+            </span>
+            <span v-else>
+              Install Now
+            </span>
           </button>
 
-          <!-- Custom Modal -->
+
+
           <div v-if="showModal" class="modal-overlay">
             <div class="modal-content">
               <h2>AccuKnox Agent Configuration</h2>
@@ -317,4 +333,24 @@ export default {
   text-align: center;
   box-shadow: 0 0 20px rgba(0,0,0,0.3);
 }
+
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+
 </style>
