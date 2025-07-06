@@ -9,7 +9,6 @@ import { allHash } from '@shell/utils/promise';
 import ResourceFetch from '@shell/mixins/resource-fetch';
 
 import { Banner } from '@components/Banner';
-import Loading from '@shell/components/Loading';
 
 import { ACCUKNOX_CHARTS } from '../../types/accuknox';
 import { getLatestStableVersion } from '../../plugins/accuknox-class';
@@ -26,7 +25,6 @@ export default {
 
   components: {
     Banner,
-    Loading,
   },
 
   mixins: [ResourceFetch],
@@ -229,16 +227,6 @@ export default {
 </script>
 
 <template>
-  <Loading v-if="$fetchState.pending" />
-  <div v-else class="container">
-    <div class="title p-10">
-      <div class="logo mt-20 mb-10">
-        <img src="../../assets/accuknox-logo.svg" height="64" />
-      </div>
-      <h1 class="mb-20">{{ t("accuknox.title") }}</h1>
-      <div class="description">{{ t("accuknox.dashboard.description") }}</div>
-
-
         <div>
           <button class="btn role-primary" :disabled="isInstalling" @click="showModal = true">
             <span v-if="isInstalling">
@@ -282,36 +270,9 @@ export default {
             </div>
           </div>
         </div>
-
-    </div>
-  </div>
 </template>
 
 <style lang="scss" scoped>
-.container {
-  & .title {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    margin: 100px 0;
-  }
-
-  & .description {
-    line-height: 20px;
-  }
-
-  & .chart-route {
-    position: relative;
-  }
-
-  & .airgap-align {
-    justify-content: start;
-  }
-}
-
 .modal-overlay {
   position: fixed;
   top: 0;

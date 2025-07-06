@@ -1,5 +1,5 @@
 export const ACCUKNOX_CONST = {
-    AGENT_SERVICE: 'accuknox-agents',
+    AGENT_SERVICE: 'agents-operator',
 };
   
 
