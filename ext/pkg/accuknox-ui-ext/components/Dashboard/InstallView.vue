@@ -255,8 +255,8 @@ export default {
             <div class="modal-content">
               <h2>AccuKnox Agent Configuration</h2>
 
-              <label>Join Token</label>
-              <input required v-model="form.accessToken" class="input" placeholder="Enter Join Token" />
+              <label>Access Token</label>
+              <input required v-model="form.accessToken" class="input" placeholder="Enter Access Token" />
 
               <label class="mt-4">Spire Host</label>
               <input required v-model="form.spireHost" class="input" placeholder="spire.example.com" />
