@@ -45,7 +45,7 @@ export default {
   data() {
     return {
       form: {
-        accessToken: '',
+        accessKey: '',
         spireHost: '',
         ppsHost: '',
         knoxGateway: '',
@@ -130,7 +130,7 @@ export default {
           namespace: 'agents',
           values: {
             clusterName: this.clusterId,
-            accessToken: this.form.accessToken,
+            accessKey: this.form.accessKey,
             spireHost: this.form.spireHost,
             ppsHost: this.form.ppsHost,
             knoxGateway: this.form.knoxGateway,
@@ -139,6 +139,9 @@ export default {
           }
         }
       ];
+
+      console.log("TEST", REPOS)
+
 
       await this.$fetchType(CATALOG.CLUSTER_REPO);
       const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
@@ -255,17 +258,17 @@ export default {
             <div class="modal-content">
               <h2>AccuKnox Agent Configuration</h2>
 
-              <label>Access Token</label>
-              <input required v-model="form.accessToken" class="input" placeholder="Enter Access Token" />
+              <label>Access Key</label>
+              <input required v-model="form.accessKey" class="input" placeholder="Enter Access Key" />
 
               <label class="mt-4">Spire Host</label>
-              <input required v-model="form.spireHost" class="input" placeholder="spire.example.com" />
+              <input required v-model="form.spireHost" class="input" placeholder="spire.demo.accuknox.com" />
 
               <label class="mt-4">PPS Host</label>
-              <input required v-model="form.ppsHost" class="input" placeholder="pps.example.com" />
+              <input required v-model="form.ppsHost" class="input" placeholder="pps.demo.accuknox.com" />
 
               <label class="mt-4">Knox Gateway</label>
-              <input required v-model="form.knoxGateway" class="input" placeholder="gateway.example.com" />
+              <input required v-model="form.knoxGateway" class="input" placeholder="gateway.demo.accuknox.com" />
 
               <label class="mt-4">Enable Admission Controller</label>
               <input type="checkbox" v-model="form.admissionController" />
