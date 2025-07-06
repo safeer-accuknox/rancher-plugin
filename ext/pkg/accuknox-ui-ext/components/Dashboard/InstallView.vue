@@ -57,6 +57,7 @@ export default {
       debounceRefreshCharts: null,
       reloadReady: false,
       install: false,
+      installComplete: false, 
     }
   },
 
@@ -220,6 +221,7 @@ export default {
       });
       this.isInstalling = false;
       this.showModal = false;
+      this.installComplete = true; 
       this.debounceRefreshCharts?.(true);
     }
   }
@@ -227,6 +229,13 @@ export default {
 </script>
 
 <template>
+      <!-- Show "Installed" if installComplete -->
+      <div v-if="installComplete" class="text-green-600 font-semibold p-4">
+        ✅ AccuKnox Installed Successfully
+      </div>
+
+      <!-- Show button otherwise -->
+      <div v-else>
         <div>
           <button class="btn role-primary" :disabled="isInstalling" @click="showModal = true">
             <span v-if="isInstalling">
@@ -270,6 +279,8 @@ export default {
             </div>
           </div>
         </div>
+
+      </div>
 </template>
 
 <style lang="scss" scoped>

@@ -47,7 +47,7 @@ export default {
     <InstallView v-if="!uiService" :ui-service="uiService" />
     <div v-else class="p-20 text-center">
       <h3 class="text-lg font-semibold text-green-600">
-        ✅ AccuKnox CWPP is already activated.
+        ✅ AccuKnox CWPP is activated.
       </h3>
     </div>
     </div>
