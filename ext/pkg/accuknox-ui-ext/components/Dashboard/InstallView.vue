@@ -45,7 +45,7 @@ export default {
   data() {
     return {
       form: {
-        joinToken: '',
+        accessToken: '',
         spireHost: '',
         ppsHost: '',
         knoxGateway: '',
@@ -113,11 +113,13 @@ export default {
         {
           name: 'kubearmor-charts',
           url: 'https://kubearmor.github.io/charts/',
-          chartName: 'kubearmor',
+          chartName: 'kubearmor-operator',
           version: 'v1.5.7',
           installAfter: true,
           namespace: 'kubearmor',
-          values: {}
+          values: {
+            autoDeploy: true
+          }
         },
         {
           name: 'accuknox-agents',
@@ -127,7 +129,8 @@ export default {
           installAfter: true,
           namespace: 'agents',
           values: {
-            joinToken: this.form.joinToken,
+            clusterName: this.clusterId,
+            accessToken: this.form.accessToken,
             spireHost: this.form.spireHost,
             ppsHost: this.form.ppsHost,
             knoxGateway: this.form.knoxGateway,
@@ -253,16 +256,16 @@ export default {
               <h2>AccuKnox Agent Configuration</h2>
 
               <label>Join Token</label>
-              <input v-model="form.joinToken" class="input" placeholder="Enter Join Token" />
+              <input required v-model="form.accessToken" class="input" placeholder="Enter Join Token" />
 
               <label class="mt-4">Spire Host</label>
-              <input v-model="form.spireHost" class="input" placeholder="spire.example.com" />
+              <input required v-model="form.spireHost" class="input" placeholder="spire.example.com" />
 
               <label class="mt-4">PPS Host</label>
-              <input v-model="form.ppsHost" class="input" placeholder="pps.example.com" />
+              <input required v-model="form.ppsHost" class="input" placeholder="pps.example.com" />
 
               <label class="mt-4">Knox Gateway</label>
-              <input v-model="form.knoxGateway" class="input" placeholder="gateway.example.com" />
+              <input required v-model="form.knoxGateway" class="input" placeholder="gateway.example.com" />
 
               <label class="mt-4">Enable Admission Controller</label>
               <input type="checkbox" v-model="form.admissionController" />
