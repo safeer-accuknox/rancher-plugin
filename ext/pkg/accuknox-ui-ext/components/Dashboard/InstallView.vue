@@ -46,6 +46,14 @@ export default {
 
   data() {
     return {
+      form: {
+        joinToken: '',
+        spireHost: '',
+        ppsHost: '',
+        knoxGateway: '',
+        admissionController: false,
+        kyverno: false,
+      },
       debounceRefreshCharts: null,
       reloadReady: false,
       install: false,
@@ -107,7 +115,9 @@ export default {
           chartName: 'kubearmor',
           version: 'v1.5.7',
           installAfter: true,
-          namespace: 'kubearmor' 
+          namespace: 'kubearmor',
+          values: {
+          }
         },
         {
           name: 'accuknox-agents',
@@ -115,16 +125,26 @@ export default {
           chartName: 'agents-chart',
           version: 'v0.10.5',
           installAfter: true,
-          namespace: 'agents' 
+          namespace: 'agents',
+          values: {
+            joinToken: this.form.joinToken,
+            spireHost: this.form.spireHost,
+            ppsHost: this.form.ppsHost,
+            knoxGateway: this.form.knoxGateway,
+            admissionController: { enabled: this.form.admissionController },
+            kyverno: { enabled: this.form.kyverno },
+          }
         }
       ];
+
+      console.log(REPOS[1])
 
       // Step 0: Fetch current repos
       await this.$fetchType(CATALOG.CLUSTER_REPO);
       const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
 
       for (const repo of REPOS) {
-        const { name, url, chartName, version, installAfter, namespace } = repo;
+        const { name, url, chartName, version, installAfter, namespace, values } = repo;
         await this.createNamespace(namespace);
         const found = allRepos.find(r => r.metadata?.name === name);
 
@@ -167,6 +187,7 @@ export default {
                     'catalog.cattle.io/ui-source-repo': name
                   },
                   values: {
+                    ...values,
                     global: {
                       cattle: {
                         clusterId: this.clusterId,
@@ -234,38 +255,39 @@ export default {
 <template>
   <Loading v-if="$fetchState.pending" />
   <div v-else class="container">
-    <div v-if="!install" class="title p-10">
+    <div class="title p-10">
       <div class="logo mt-20 mb-10">
         <img src="../../assets/accuknox-logo.svg" height="64" />
       </div>
-      <h1 class="mb-20" data-testid="nv-install-title">
-        {{ t("accuknox.title") }}
-      </h1>
-      <div class="description">
-        {{ t("accuknox.dashboard.description") }}
-      </div>
-      <div class="chart-route" v-if="!uiService">
-        <Loading v-if="!controllerChart && !reloadReady" mode="relative" class="mt-20" />
-        <template v-else-if="!controllerChart && reloadReady">
-          <Banner color="warning">
-            <span class="mb-20">
-              {{ t('accuknox.dashboard.appInstall.reload' ) }}
-            </span>
-            <button class="ml-10 btn btn-sm role-primary" @click="reload()">
-              {{ t('generic.reload') }}
-            </button>
-          </Banner>
-        </template>
-        <template v-else>
-          <button class="btn role-primary mt-20" data-testid="nv-app-install-button" :disabled="!controllerChart" @click.prevent="deploy">
-            {{ t("accuknox.dashboard.appInstall.button") }}
-          </button>
-        </template>
+      <h1 class="mb-20">{{ t("accuknox.title") }}</h1>
+      <div class="description">{{ t("accuknox.dashboard.description") }}</div>
+
+      <div class="form-section mt-10">
+        <label>Join Token</label>
+        <input v-model="form.joinToken" class="input" placeholder="Enter Join Token" />
+
+        <label class="mt-4">Spire Host</label>
+        <input v-model="form.spireHost" class="input" placeholder="spire.example.com" />
+
+        <label class="mt-4">PPS Host</label>
+        <input v-model="form.ppsHost" class="input" placeholder="pps.example.com" />
+
+        <label class="mt-4">Knox Gateway</label>
+        <input v-model="form.knoxGateway" class="input" placeholder="gateway.example.com" />
+
+        <label class="mt-4">Enable Admission Controller</label>
+        <input type="checkbox" v-model="form.admissionController" />
+
+        <label class="mt-4">Enable Kyverno</label>
+        <input type="checkbox" v-model="form.kyverno" />
+
+        <button class="btn role-primary mt-10" @click.prevent="deploy">
+          {{ t("accuknox.dashboard.appInstall.button") }}
+        </button>
       </div>
     </div>
   </div>
 </template>
-
 <style lang="scss" scoped>
 .container {
   & .title {
