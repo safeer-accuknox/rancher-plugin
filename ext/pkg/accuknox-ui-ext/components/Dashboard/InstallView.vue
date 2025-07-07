@@ -122,7 +122,6 @@ export default {
       this.showModal = false;
 
       const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
-
       const REPOS = [
         {
           name: 'kubearmor-charts',
@@ -155,18 +154,19 @@ export default {
         }
       ];
 
+      console.log("TEST", this.url)
+
+
       await this.$fetchType(CATALOG.CLUSTER_REPO);
       const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
 
       for (const repo of REPOS) {
         const { name, url, chartName, version, installAfter, namespace, values } = repo;
+        await this.createNamespace(namespace);
         const found = allRepos.find(r => r.metadata?.name === name);
 
-        try {
-          await this.createNamespace(namespace);
-
-          if (!found) {
-            // Create missing repo
+        if (!found) {
+          try {
             const repoObj = await this.$store.dispatch('cluster/create', {
               type: CLUSTER_REPO_TYPE,
               metadata: { name },
@@ -174,17 +174,44 @@ export default {
             });
 
             await repoObj.save();
-            await new Promise(r => setTimeout(r, 3000));
-
-            await refreshCharts({
-              store: this.$store,
-              chartName,
-              init: true
+            await new Promise(r => setTimeout(r, 5000));
+            
+            const chartRefreshData = {
+              "id": name,
+              "type": "catalog.cattle.io.clusterrepo",
+              "actions": {
+                "install": `${this.url}/v1/catalog.cattle.io.clusterrepos/${name}?action=install`,
+                "upgrade": `${this.url}/v1/catalog.cattle.io.clusterrepos/${name}?action=upgrade`
+              },
+              "apiVersion": "catalog.cattle.io/v1",
+              "kind": "ClusterRepo",
+              "metadata": {
+                "fields": [
+                  name,
+                  url
+                ],
+                "name": name,
+              },
+              "spec": {
+                "url": url
+              }
+            }
+             
+            await this.$store.dispatch('cluster/request', {
+              url: `v1/catalog.cattle.io.clusterrepos/${name}`,
+              method: 'PUT',
+              data: chartRefreshData
             });
-            await new Promise(r => setTimeout(r, 3000));
-          }
 
-          if (!found && installAfter) {
+            await new Promise(r => setTimeout(r, 5000));
+          } catch (e) {
+            handleGrowl({ error: e, store: this.$store });
+            continue;
+          }
+        }
+
+        if (installAfter) {
+          try {
             const data = {
               charts: [
                 {
@@ -224,12 +251,13 @@ export default {
               method: 'POST',
               data
             });
+            await new Promise(r => setTimeout(r, 5 * 60 * 1000)); // 5 minutes
+            
+          } catch (e) {
+            handleGrowl({ error: e, store: this.$store });
+            continue;
 
-            await new Promise(r => setTimeout(r, 2 * 60 * 1000));
           }
-        } catch (e) {
-          handleGrowl({ error: e, store: this.$store });
-          continue;
         }
       }
 
@@ -238,15 +266,13 @@ export default {
         store: this.$store,
         error: {
           _statusText: 'Success',
-          message: 'Missing agents/charts installed successfully.'
+          message: 'AccuKnox agents installed successfully.'
         }
       });
-
       this.isInstalling = false;
       this.showModal = false;
-      this.installComplete = true;
+      this.installComplete = true; 
     }
-
   }
 };
 </script>
