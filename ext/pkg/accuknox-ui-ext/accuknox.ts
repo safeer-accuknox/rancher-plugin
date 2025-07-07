@@ -19,17 +19,17 @@ export function init($plugin: IPlugin, store: any) {
   });
 
   virtualType({
-    labelKey: "accuknox.appliedPolicies",
-    name: "accuknox-policies",
+    labelKey: "accuknox.dashboard.name",
+    name: "accuknox-dashboard",
     namespaced: false,
     route: {
-      name: `c-cluster-${ACCUKNOX}-policies`,
+      name: `c-cluster-${ACCUKNOX}-dashboard`,
       params: { product: ACCUKNOX },
       meta: { pkg: "accuknox-ui-ext", product: ACCUKNOX },
     },
   });
 
   basicType([
-    "accuknox-policies"
+    "accuknox-dashboard"
   ]);
 }

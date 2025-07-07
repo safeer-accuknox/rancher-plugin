@@ -1,7 +1,7 @@
 accuknox:
-  appliedPolicies: Applied Policies
   title: AccuKnox
   dashboard:
+    name: Dashboard
     label: "Overview"
     description: |
       AccuKnox CNAPP
