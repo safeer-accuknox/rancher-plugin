@@ -48,6 +48,7 @@ export default {
         accessKey: '',
         spireHost: '',
         tokenURL: '',
+        clusterName: '',
         ppsHost: '',
         knoxGateway: '',
         admissionController: false,
@@ -86,6 +87,19 @@ export default {
   },
 
   methods: {
+    openModalWithDefaults() {
+      this.form = {
+        accessKey: '',
+        clusterName: this.clusterId,
+        tokenURL: 'cwpp.demo.accuknox.com',
+        spireHost: 'spire.demo.accuknox.com',
+        ppsHost: 'pps.demo.accuknox.com',
+        knoxGateway: 'knox-gw.demo.accuknox.com:3000',
+        admissionController: false,
+        kyverno: false
+      };
+      this.showModal = true;
+    },
     async createNamespace(ns) {
       const allNamespaces = this.$store.getters['cluster/all'](NAMESPACE);
       const nsTemplate = {
@@ -130,7 +144,7 @@ export default {
           installAfter: true,
           namespace: 'agents',
           values: {
-            clusterName: this.clusterId,
+            clusterName: this.form.clusterName,
             accessKey: this.form.accessKey,
             spireHost: this.form.spireHost,
             tokenURL: this.form.tokenURL,
@@ -252,7 +266,7 @@ export default {
       <!-- Show button otherwise -->
       <div v-else>
         <div>
-          <button class="btn role-primary" :disabled="isInstalling" @click="showModal = true">
+          <button class="btn role-primary" :disabled="isInstalling" @click="openModalWithDefaults">
             <span v-if="isInstalling">
               <span class="spinner" /> Installing...
             </span>
@@ -269,6 +283,9 @@ export default {
 
               <label>Access Key</label>
               <input required v-model="form.accessKey" class="input" placeholder="Enter Access Key" />
+
+              <label>Cluster Name</label>
+              <input required v-model="form.clusterName" class="input" placeholder="Cluster Name" />
 
               <label class="mt-4">Token URL</label>
               <input required v-model="form.tokenURL" class="input" placeholder="cwpp.demo.accuknox.com" />
