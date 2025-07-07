@@ -147,7 +147,6 @@ export default {
     async installRepos(REPOS) {
       const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
       const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
-      console.log(allRepos)
 
       for (const repo of REPOS) {
         const { name, url, namespace } = repo;
