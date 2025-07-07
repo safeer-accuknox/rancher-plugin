@@ -47,6 +47,7 @@ export default {
       form: {
         accessKey: '',
         spireHost: '',
+        tokenURL: '',
         ppsHost: '',
         knoxGateway: '',
         admissionController: false,
@@ -132,6 +133,7 @@ export default {
             clusterName: this.clusterId,
             accessKey: this.form.accessKey,
             spireHost: this.form.spireHost,
+            tokenURL: this.form.tokenURL,
             ppsHost: this.form.ppsHost,
             knoxGateway: this.form.knoxGateway,
             admissionController: { enabled: this.form.admissionController },
@@ -153,6 +155,12 @@ export default {
 
         if (!found) {
           try {
+            this.debouncedRefreshCharts = debounce((init = false) => {
+              refreshCharts({
+                store: this.$store, chartName: repo.chartName, init
+              });
+            }, 500);
+
             const repoObj = await this.$store.dispatch('cluster/create', {
               type: CLUSTER_REPO_TYPE,
               metadata: { name },
@@ -161,7 +169,8 @@ export default {
 
             await repoObj.save();
             await new Promise(r => setTimeout(r, 3000));
-            await this.$store.dispatch('catalog/refresh');
+            this.debouncedRefreshCharts(true);
+            await new Promise(r => setTimeout(r, 3000));
           } catch (e) {
             handleGrowl({ error: e, store: this.$store });
             continue;
@@ -261,6 +270,9 @@ export default {
               <label>Access Key</label>
               <input required v-model="form.accessKey" class="input" placeholder="Enter Access Key" />
 
+              <label class="mt-4">Token URL</label>
+              <input required v-model="form.tokenURL" class="input" placeholder="cwpp.demo.accuknox.com" />
+
               <label class="mt-4">Spire Host</label>
               <input required v-model="form.spireHost" class="input" placeholder="spire.demo.accuknox.com" />
 
@@ -268,7 +280,7 @@ export default {
               <input required v-model="form.ppsHost" class="input" placeholder="pps.demo.accuknox.com" />
 
               <label class="mt-4">Knox Gateway</label>
-              <input required v-model="form.knoxGateway" class="input" placeholder="gateway.demo.accuknox.com" />
+              <input required v-model="form.knoxGateway" class="input" placeholder="knox-gw.demo.accuknox.com:3000" />
 
               <label class="mt-4">Enable Admission Controller</label>
               <input type="checkbox" v-model="form.admissionController" />
