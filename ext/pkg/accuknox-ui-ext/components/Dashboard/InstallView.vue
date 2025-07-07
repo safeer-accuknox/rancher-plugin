@@ -26,9 +26,12 @@
         >
           Install Repos
         </button>
-        <button v-else class="btn role-secondary" :disabled="isInstalling" @click="openModalWithDefaults">
+        <button v-else-if="chartReady" class="btn role-secondary" :disabled="isInstalling" @click="openModalWithDefaults">
           Install Charts
         </button>
+        <span v-else class="text-sm text-gray-500 ml-2">
+          ⏳ Preparing chart... Please wait
+        </span>
       </div>
 
       <!-- Modal -->
@@ -78,6 +81,14 @@ import { CATALOG, NAMESPACE } from '@shell/config/types';
 import { handleGrowl } from '../../utils/handle-growl';
 
 export default {
+  async mounted() {
+    console.log('[DEBUG] mounted hook triggered');
+    console.log('[DEBUG] mounted hook triggered1');
+
+    if(this.checkAllReposPresent()){
+      this.checkAllReposReady()
+    }
+  },
   data() {
     return {
       form: {
@@ -88,16 +99,25 @@ export default {
       isInstalling: false,
       installComplete: false,
       url: window.location.origin,
+      chartReady: false,
+      allReposPresent: false,
     };
   },
   computed: {
-    allReposPresent() {
-      const allRepos = this.$store.getters['cluster/all']('catalog.cattle.io.clusterrepo');
-      const requiredRepos = this.getInstallConfig().map(r => r.name);
-      return requiredRepos.every(repoName => allRepos.some(r => r.metadata?.name === repoName));
-    }
   },
   methods: {
+    async checkAllReposPresent() {
+      this.repos = await this.$store.dispatch('cluster/findAll', { type: CATALOG.CLUSTER_REPO }, { root: true });
+      const requiredRepos = this.getInstallConfig().map(r => r.name);
+      this.allReposPresent =  requiredRepos.every(repoName => this.repos.some(r => r.metadata?.name === repoName));
+      return this.allReposPresent
+    },
+    async checkAllReposReady() {
+      const requiredRepos = this.getInstallConfig().map(r => r.name);
+      for (const name of requiredRepos) {
+        await this.waitForChart(name);
+      }
+    },
     openModalWithDefaults() {
       this.form = {
         accessKey: '', clusterName: this.clusterId,
@@ -107,7 +127,32 @@ export default {
       };
       this.showModal = true;
     },
+    async checkChartAvailability(repoName) {
+      try {
+        const response = await this.$store.dispatch('cluster/request', {
+          url: `v1/catalog.cattle.io.clusterrepos/${repoName}?link=index`,
+          method: 'GET'
+        });
 
+        console.log("TEST", response)
+
+        // If we get any chart entries, assume ready
+        if (response?.packages?.length > 0) {
+          this.chartReady = true;
+        } else {
+          this.chartReady = false;
+        }
+      } catch (e) {
+        this.chartReady = false;
+      }
+    },
+    async waitForChart(repoName, retries = 20, delay = 3000) {
+      for (let i = 0; i < retries; i++) {
+        await this.checkChartAvailability(repoName);
+        if (this.chartReady) break;
+        await new Promise(r => setTimeout(r, delay));
+      }
+    },
     getInstallConfig() {
       return [
         {
@@ -152,7 +197,6 @@ export default {
     },
 
     async fetch() {
-      this.repos = await this.$fetchType(CATALOG.CLUSTER_REPO);
     },
 
     async installRepos(REPOS) {
@@ -177,6 +221,7 @@ export default {
           }
         }
       }
+      this.checkAllReposPresent()
     },
 
     async installCharts(REPOS) {
