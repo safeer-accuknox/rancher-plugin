@@ -18,11 +18,15 @@
 
       <!-- New buttons for separate actions -->
       <div class="mt-4">
-        <button class="btn role-primary mr-2" :disabled="isInstalling" @click="installReposOnly">
+        <button
+          v-if="!allReposPresent"
+          class="btn role-primary mr-2"
+          :disabled="isInstalling"
+          @click="installReposOnly"
+        >
           Install Repos
         </button>
-
-        <button class="btn role-secondary" :disabled="isInstalling" @click="openModalWithDefaults">
+        <button v-else class="btn role-secondary" :disabled="isInstalling" @click="openModalWithDefaults">
           Install Charts
         </button>
       </div>
@@ -85,6 +89,13 @@ export default {
       installComplete: false,
       url: window.location.origin,
     };
+  },
+  computed: {
+    allReposPresent() {
+      const allRepos = this.$store.getters['cluster/all']('catalog.cattle.io.clusterrepo');
+      const requiredRepos = this.getInstallConfig().map(r => r.name);
+      return requiredRepos.every(repoName => allRepos.some(r => r.metadata?.name === repoName));
+    }
   },
   methods: {
     openModalWithDefaults() {
