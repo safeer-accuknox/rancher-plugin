@@ -251,7 +251,7 @@ export default {
               method: 'POST',
               data
             });
-            await new Promise(r => setTimeout(r, 5 * 60 * 1000)); // 5 minutes
+            await new Promise(r => setTimeout(r, 1 * 60 * 1000)); // 1 minutes
             
           } catch (e) {
             handleGrowl({ error: e, store: this.$store });
