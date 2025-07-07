@@ -1,6 +1,5 @@
 <script>
 import { mapGetters } from 'vuex';
-import debounce from 'lodash/debounce';
 
 import { CATALOG, SERVICE } from '@shell/config/types';
 import { NAMESPACE } from '@shell/config/types';
@@ -56,7 +55,6 @@ export default {
       },
       showModal: false,
       isInstalling: false,
-      debounceRefreshCharts: null,
       reloadReady: false,
       install: false,
       installComplete: false, 
@@ -124,6 +122,7 @@ export default {
       this.showModal = false;
 
       const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
+
       const REPOS = [
         {
           name: 'kubearmor-charts',
@@ -156,25 +155,18 @@ export default {
         }
       ];
 
-      console.log("TEST", REPOS)
-
-
       await this.$fetchType(CATALOG.CLUSTER_REPO);
       const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
 
       for (const repo of REPOS) {
         const { name, url, chartName, version, installAfter, namespace, values } = repo;
-        await this.createNamespace(namespace);
         const found = allRepos.find(r => r.metadata?.name === name);
 
-        if (!found) {
-          try {
-            this.debouncedRefreshCharts = debounce((init = false) => {
-              refreshCharts({
-                store: this.$store, chartName: repo.chartName, init
-              });
-            }, 500);
+        try {
+          await this.createNamespace(namespace);
 
+          if (!found) {
+            // Create missing repo
             const repoObj = await this.$store.dispatch('cluster/create', {
               type: CLUSTER_REPO_TYPE,
               metadata: { name },
@@ -183,16 +175,16 @@ export default {
 
             await repoObj.save();
             await new Promise(r => setTimeout(r, 3000));
-            this.debouncedRefreshCharts(true);
-            await new Promise(r => setTimeout(r, 3000));
-          } catch (e) {
-            handleGrowl({ error: e, store: this.$store });
-            continue;
-          }
-        }
 
-        if (installAfter) {
-          try {
+            await refreshCharts({
+              store: this.$store,
+              chartName,
+              init: true
+            });
+            await new Promise(r => setTimeout(r, 3000));
+          }
+
+          if (!found && installAfter) {
             const data = {
               charts: [
                 {
@@ -233,10 +225,11 @@ export default {
               data
             });
 
-            
-          } catch (e) {
-            handleGrowl({ error: e, store: this.$store });
+            await new Promise(r => setTimeout(r, 2 * 60 * 1000));
           }
+        } catch (e) {
+          handleGrowl({ error: e, store: this.$store });
+          continue;
         }
       }
 
@@ -245,14 +238,15 @@ export default {
         store: this.$store,
         error: {
           _statusText: 'Success',
-          message: 'AccuKnox agents installed successfully.'
+          message: 'Missing agents/charts installed successfully.'
         }
       });
+
       this.isInstalling = false;
       this.showModal = false;
-      this.installComplete = true; 
-      this.debounceRefreshCharts?.(true);
+      this.installComplete = true;
     }
+
   }
 };
 </script>
