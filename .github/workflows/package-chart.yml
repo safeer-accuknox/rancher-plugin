@@ -68,3 +68,6 @@ jobs:
           publish="yarn publish-pkgs -c -r docker.io -o safeeraccuknox -i demo -t $TAG_NAME"
           echo "Running publish command: $publish"
           $publish
+
+          docker tag docker.io/safeeraccuknox/demoaccuknox-ext:$TAG_NAME docker.io/safeeraccuknox/demo:accuknox-ext-$TAG_NAME 
+          docker push docker.io/safeeraccuknox/demo:accuknox-ext-$TAG_NAME 
