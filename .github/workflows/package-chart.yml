@@ -20,8 +20,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      # - name: Enable Corepack
+      #   run: corepack enable
 
       - name: Configure Git
         run: |
@@ -40,11 +40,11 @@ jobs:
           version: v3.8.0
 
       - name: Setup Nodejs with yarn caching
+        working-directory: ./ext  
         uses: actions/setup-node@v4
         with:
           node-version: '16.19.1'
           cache: yarn
-          cache-dependency-path: ./ext/yarn.lock 
 
       - name: Install dependencies
         working-directory: ./ext  
