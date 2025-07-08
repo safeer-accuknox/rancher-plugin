@@ -1,37 +1,24 @@
-name: Build and Release Extension Charts
+name: Build and release Extension Catalog Image to registry
 
 on:
-  workflow_call:
-    inputs:
-      target_branch:
-        required: true
-        type: string
-      tagged_release:
-        required: true
-        type: string
-
-env:
-  ACTIONS_RUNNER_DEBUG: false
-  CI_COMMIT_MESSAGE: CI Build Artifacts
-
-defaults:
-  run:
-    shell: bash
   workflow_dispatch:
-    working-directory: ./ext
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  build-extension-artifact:
-    name: Build extension artifact
+  build-extension-catalog:
+    name: Build container image
+    if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request')
     runs-on: ubuntu-latest
     permissions:
       actions: write
       contents: read
+      packages: write
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Enable Corepack
         run: corepack enable
@@ -40,6 +27,12 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          username: safeeraccuknox
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
@@ -57,69 +50,26 @@ jobs:
       - name: Install dependencies
         run: yarn
 
+      - name: Extract Tag
+        id: vars
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
       - name: Parse Extension Name
         if: github.ref_type == 'tag'
-        id: parsed-name
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          yarn parse-tag-name ${{ inputs.tagged_release }} ${{ github.run_id }} "charts"
+          yarn parse-tag-name "${TAG_NAME}" "${{ github.run_id }}" "catalog"
 
-      - name: Run build script
-        shell: bash
-        id: build_script
+      - name: Build and push UI image
         run: |
-          publish="yarn publish-pkgs -s ${{ github.repository }} -b ${{ inputs.target_branch }}"
+          registry_target="safeeraccuknox/demo"
 
-          if [[ -n "${{ inputs.tagged_release }}" ]]; then
-            publish="$publish -t ${{ inputs.tagged_release }}"
+          publish="yarn publish-pkgs -cp -r ${registry_target} -o ${{ github.repository_owner }}"
+
+          if [[ -n "${TAG_NAME}" ]]; then
+            publish="$publish -t ${TAG_NAME}"
           fi
 
+          echo "Running publish command: $publish"
           $publish
-
-      - name: Upload charts artifact
-        if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request')
-        uses: actions/upload-artifact@v3
-        with:
-          name: charts
-          path: tmp
-
-  release:
-    name: Release Build
-    if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request')
-    needs: build-extension-artifact
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: write
-      deployments: write
-      pages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: '${{ inputs.target_branch }}'
-
-      - name: Configure Git
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: charts
-
-      - name: Commit build
-        run: |
-          git add ./{assets,charts,extensions,index.yaml}
-          git commit -a -m "${{ env.CI_COMMIT_MESSAGE }}"
-          git push
-
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.4.1
-        with:
-          charts_dir: ./charts/*
-        env:
-          CR_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-          CR_SKIP_EXISTING: true
