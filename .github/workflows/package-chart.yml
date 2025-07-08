@@ -6,6 +6,11 @@ on:
     tags:
       - 'v*'
 
+defaults:
+  run:
+    shell: bash
+    working-directory: ./ext
+
 jobs:
   build-extension-catalog:
     name: Build container image
