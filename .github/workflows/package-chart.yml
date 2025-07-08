@@ -65,6 +65,6 @@ jobs:
       - name: Build and push UI image
         working-directory: ./ext  
         run: |
-          publish="yarn publish-pkgs -cp -r safeeraccuknox -o demo -i '' -t $TAG_NAME"
+          publish="yarn publish-pkgs -cp -r safeeraccuknox -o mo -i de -t $TAG_NAME"
           echo "Running publish command: $publish"
           $publish
