@@ -1,6 +1,6 @@
 {
-  "name": "accuknox-ext",
-  "version": "0.1.24",
+  "name": "demo",
+  "version": "0.1.25",
   "private": false,
   "engines": {
     "node": ">=16"
