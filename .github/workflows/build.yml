@@ -2,13 +2,11 @@ name: Build and Release Extension Charts
 
 on:
   workflow_dispatch:
-  release:  
-    types: [released]
 
 defaults:
   run:
     shell: bash
-    working-directory: ./
+    working-directory: ./ext
 
 jobs:
   build-extension-charts:
