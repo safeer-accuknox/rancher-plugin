@@ -6,11 +6,6 @@ on:
     tags:
       - 'v*'
 
-defaults:
-  run:
-    shell: bash
-    working-directory: ./ext
-
 jobs:
   build-extension-catalog:
     name: Build container image
@@ -47,6 +42,7 @@ jobs:
       - name: Setup Nodejs with yarn caching
         uses: actions/setup-node@v4
         with:
+          node-version: '16.19.1'
           cache: yarn
           cache-dependency-path: ./ext/yarn.lock 
 
