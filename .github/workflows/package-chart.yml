@@ -46,12 +46,9 @@ jobs:
           cache: yarn
           cache-dependency-path: ./ext/yarn.lock 
 
-      - name: Setup yarn
-        run: npm install -g yarn
-
       - name: Install dependencies
         working-directory: ./ext  
-        run: yarn
+        run: yarn install
 
       - name: Extract Tag
         id: vars
