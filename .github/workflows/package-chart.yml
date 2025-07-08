@@ -48,11 +48,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           cache: yarn
+          cache-dependency-path: ./ext/yarn.lock 
 
       - name: Setup yarn
         run: npm install -g yarn
 
       - name: Install dependencies
+        working-directory: ./ext  
         run: yarn
 
       - name: Extract Tag
@@ -61,12 +63,14 @@ jobs:
 
       - name: Parse Extension Name
         if: github.ref_type == 'tag'
+        working-directory: ./ext  
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           yarn parse-tag-name "${TAG_NAME}" "${{ github.run_id }}" "catalog"
 
       - name: Build and push UI image
+        working-directory: ./ext  
         run: |
           registry_target="safeeraccuknox/demo"
 
