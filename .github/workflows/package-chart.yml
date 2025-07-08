@@ -69,5 +69,7 @@ jobs:
           echo "Running publish command: $publish"
           $publish
 
+          echo docker tag safeeraccuknox/demo/rancheraccuknox-ext:$TAG_NAME safeeraccuknox/demo:accuknox-ext-$TAG_NAME 
           docker tag safeeraccuknox/demo/rancheraccuknox-ext:$TAG_NAME safeeraccuknox/demo:accuknox-ext-$TAG_NAME 
+          echo tagged
           docker push safeeraccuknox/demo:accuknox-ext-$TAG_NAME 
