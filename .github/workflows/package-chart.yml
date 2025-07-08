@@ -69,7 +69,9 @@ jobs:
           echo "Running publish command: $publish"
           $publish
 
-          echo docker tag safeeraccuknox/demo/rancher${TAG_NAME/-/:} safeeraccuknox/demo:accuknox-ext-${{ github.run_number }}
-          docker tag safeeraccuknox/demo/rancher${TAG_NAME/-/:} safeeraccuknox/demo:accuknox-ext-${{ github.run_number }}
-          echo tagged
+          IMAGE_NAME="safeeraccuknox/demo/rancher$TAG_NAME"
+          TAGGED_NAME="${IMAGE_NAME%-*}:${IMAGE_NAME##*-}"
+
+          echo docker tag $TAGGED_NAME safeeraccuknox/demo:accuknox-ext-${{ github.run_number }}
+          docker tag $TAGGED_NAME safeeraccuknox/demo:accuknox-ext-${{ github.run_number }}
           docker push safeeraccuknox/demo:accuknox-ext-${{ github.run_number }}
