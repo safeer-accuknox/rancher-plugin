@@ -1,7 +1,14 @@
 name: Build and Release Extension Charts
 
 on:
-  workflow_dispatch: 
+  workflow_call:
+    inputs:
+      target_branch:
+        required: true
+        type: string
+      tagged_release:
+        required: true
+        type: string
 
 env:
   ACTIONS_RUNNER_DEBUG: false
