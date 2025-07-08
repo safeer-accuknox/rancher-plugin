@@ -65,13 +65,6 @@ jobs:
       - name: Build and push UI image
         working-directory: ./ext  
         run: |
-          publish="yarn publish-pkgs -cp -r safeeraccuknox -o demo -i rancher -t $TAG_NAME"
+          publish="yarn publish-pkgs -cp -r docker.io -o safeeraccuknox -t $TAG_NAME"
           echo "Running publish command: $publish"
           $publish
-
-          IMAGE_NAME="safeeraccuknox/demo/rancher$TAG_NAME"
-          TAGGED_NAME="${IMAGE_NAME%-*}:${IMAGE_NAME##*-}"
-
-          echo docker tag $TAGGED_NAME safeeraccuknox/demo:accuknox-ext-${{ github.run_number }}
-          docker tag $TAGGED_NAME safeeraccuknox/demo:accuknox-ext-${{ github.run_number }}
-          docker push safeeraccuknox/demo:accuknox-ext-${{ github.run_number }}
