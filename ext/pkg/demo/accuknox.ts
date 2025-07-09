@@ -25,7 +25,7 @@ export function init($plugin: IPlugin, store: any) {
     route: {
       name: `c-cluster-${ACCUKNOX}-dashboard`,
       params: { product: ACCUKNOX },
-      meta: { pkg: "accuknox-ui-ext", product: ACCUKNOX },
+      meta: { pkg: "demo", product: ACCUKNOX },
     },
   });
 

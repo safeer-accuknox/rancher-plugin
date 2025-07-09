@@ -9,7 +9,7 @@ const routes = [
     component: Dashboard,
     meta:      {
       product: ACCUKNOX,
-      pkg:     'accuknox-ui-ext'
+      pkg:     'demo'
     }
   }
 ];
