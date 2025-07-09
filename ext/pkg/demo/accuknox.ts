@@ -29,7 +29,19 @@ export function init($plugin: IPlugin, store: any) {
     },
   });
 
+  virtualType({
+    labelKey: "accuknox.policies.name",
+    name: "accuknox-policies",
+    namespaced: false,
+    route: {
+      name: `c-cluster-${ACCUKNOX}-policies`,
+      params: { product: ACCUKNOX },
+      meta: { pkg: "demo", product: ACCUKNOX },
+    },
+  });
+
   basicType([
-    "accuknox-dashboard"
+    "accuknox-dashboard",
+    "accuknox-policies",
   ]);
 }

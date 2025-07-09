@@ -13,5 +13,10 @@ accuknox:
         message: Unable to determine the latest stable version of the AccuKnox chart. Please make sure the Helm repository is configured correctly.
     error:
       auth: Authentication Error!
+  policies:
+    name: Policies
+    label: "Policies"
+    description: |
+      AccuKnox CNAPP Policies
 general:
   REFRESH: Refresh
