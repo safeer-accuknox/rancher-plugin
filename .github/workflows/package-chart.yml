@@ -65,6 +65,6 @@ jobs:
       - name: Build and push UI image
         working-directory: ./ext  
         run: |
-          publish="yarn publish-pkgs -cp -r docker.io -o safeeraccuknox -t $TAG_NAME"
+          publish="yarn publish-pkgs -cp -r docker.io -o safeeraccuknox -t $TAG_NAME -i \"\""
           echo "Running publish command: $publish"
           $publish
