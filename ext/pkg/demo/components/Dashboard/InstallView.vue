@@ -82,7 +82,7 @@ import { handleGrowl } from '../../utils/handle-growl';
 
 export default {
   async mounted() {
-    console.log('[DEBUG] mounted hook triggered');
+    console.log('[DEBUG]1 mounted hook triggered');
     console.log('[DEBUG] mounted hook triggered1');
 
     if(this.checkAllReposPresent()){
@@ -119,8 +119,10 @@ export default {
       }
     },
     openModalWithDefaults() {
+      const cluster = this.$store.getters['currentCluster'];
+
       this.form = {
-        accessKey: '', clusterName: this.clusterId,
+        accessKey: '', clusterName: cluster.id,
         tokenURL: 'cwpp.demo.accuknox.com', spireHost: 'spire.demo.accuknox.com',
         ppsHost: 'pps.demo.accuknox.com', knoxGateway: 'knox-gw.demo.accuknox.com:3000',
         admissionController: false, kyverno: false
@@ -134,10 +136,10 @@ export default {
           method: 'GET'
         });
 
-        console.log("TEST", response)
+        console.log("TEST 123", response?.entries)
 
         // If we get any chart entries, assume ready
-        if (response?.packages?.length > 0) {
+        if (response?.entries) {
           this.chartReady = true;
         } else {
           this.chartReady = false;
