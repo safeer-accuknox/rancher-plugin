@@ -1,0 +1,4 @@
+image="docker.io/safeeraccuknox/demo:demo:0.1.31"
+new_image="${image%-*}:${image##*-}"
+
+echo $new_image
