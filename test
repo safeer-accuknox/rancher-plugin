@@ -1,4 +1,6 @@
-image="docker.io/safeeraccuknox/demo:demo:0.1.31"
-new_image="${image%-*}:${image##*-}"
+image="docker.io/safeeraccuknox/demo:demo-0.1.33"
+tag="${image##*:}" 
+version="${tag#*-}" 
+new_image="${image%%:*}:$version" 
 
-echo $new_image
+echo "$new_image"
