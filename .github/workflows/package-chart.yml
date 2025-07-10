@@ -70,14 +70,14 @@ jobs:
 
       - name: Docker tag
         run: |
-          image="docker.io/safeeraccuknox/demo:demo-0.1.33"
+          image="docker.io/safeeraccuknox/demo:$TAG_NAME"
           tag="${image##*:}" 
           version="${tag#*-}" 
           new_image="${image%%:*}:$version" 
           echo "$new_image"
 
           docker images -a 
-          
+
           docker tag $new_image accuknox-ui-extention:build
           docker build -t .
           docker build -t safeeraccuknox/demo:latest .
