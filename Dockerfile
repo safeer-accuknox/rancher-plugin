@@ -13,6 +13,9 @@ RUN helm repo add kubearmor https://kubearmor.github.io/charts/ && \
     helm repo update && \
     helm pull kubearmor/kubearmor-operator --version v1.5.7
 
+COPY accuknox-cwpp-hardening-policies ./accuknox-cwpp-hardening-policies
+
+RUN helm package accuknox-cwpp-hardening-policies && rm -rf accuknox-cwpp-hardening-policies
 
 RUN helm repo index . \
   --url http://demo-svc.cattle-ui-plugin-system:8080/charts/
