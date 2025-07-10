@@ -79,6 +79,5 @@ jobs:
           docker images -a 
 
           docker tag $new_image accuknox-ui-extention:build
-          docker build -t .
-          docker build -t safeeraccuknox/demo:latest .
+          docker buildx build -t safeeraccuknox/demo:latest .
           docker push safeeraccuknox/demo:latest
