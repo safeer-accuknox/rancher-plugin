@@ -62,8 +62,15 @@ jobs:
         run: |
           yarn parse-tag-name "${TAG_NAME}" "${{ github.run_id }}" "catalog"
 
-      - name: Build and push UI image
+      - name: Build UI image
         working-directory: ./ext  
         run: |
           echo "Running publish command"
-          yarn publish-pkgs -cp -r docker.io -o safeeraccuknox -t "$TAG_NAME" -i ''
+          yarn publish-pkgs -c -r docker.io -o safeeraccuknox -t "$TAG_NAME" -i ''
+
+      - name: Docker tag
+        run: |
+          docker tag docker.io/safeeraccuknox/demo:$TAG_NAME accuknox-ui-extention:build
+          docker build -t .
+          docker build -t safeeraccuknox/demo:latest .
+          docker push safeeraccuknox/demo:latest
