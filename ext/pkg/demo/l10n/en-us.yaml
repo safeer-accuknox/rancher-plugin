@@ -4,7 +4,7 @@ accuknox:
     name: Dashboard
     label: "Overview"
     description: |
-      AccuKnox CNAPP
+      AccuKnox CWPP
     appInstall:
       button: Install AccuKnox
       reload: Unable to fetch AccuKnox Helm chart - reload required.
@@ -17,6 +17,6 @@ accuknox:
     name: Policies
     label: "Policies"
     description: |
-      AccuKnox CNAPP Policies
+      AccuKnox CWPP Policies
 general:
   REFRESH: Refresh
