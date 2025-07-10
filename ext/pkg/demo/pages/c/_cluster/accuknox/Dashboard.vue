@@ -48,7 +48,7 @@ export default {
       await this.checkChartAvailability('accuknox-charts');
     }
 
-    this.hardeningAvailable = Boolean(this.allReposPresent && this.chartReady && this.uiService);
+    await this.checkAppAvailability('kubearmor/accuknox-cwpp-hardening-policies')
   },
 
   methods: {
@@ -58,6 +58,19 @@ export default {
       this.allReposPresent = this.repos.some(r => r.metadata?.name === requiredRepo);
     },
 
+    async checkAppAvailability(appName) {
+      try {
+        const response = await this.$store.dispatch('cluster/request', {
+          url: `v1/catalog.cattle.io.apps/${appName}?link=index`,
+          method: 'GET'
+        });
+        this.hardeningAvailable = !!response?.id;
+        return 
+      } catch {
+        this.hardeningAvailable = false;
+      }
+    },
+
     async checkChartAvailability(repoName) {
       try {
         const response = await this.$store.dispatch('cluster/request', {
@@ -65,6 +78,7 @@ export default {
           method: 'GET'
         });
         this.chartReady = !!response?.entries;
+        console.log(this.chartReady)
       } catch {
         this.chartReady = false;
       }
@@ -165,6 +179,8 @@ export default {
           title: 'Hardening Policies Installed',
           message: 'accuknox-cwpp-hardening-policies installed successfully'
         });
+        this.hardeningAvailable = true;
+
       } catch (e) {
         handleGrowl({ error: e, store: this.$store });
       }

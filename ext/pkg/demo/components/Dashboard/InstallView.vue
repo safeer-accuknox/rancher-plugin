@@ -29,17 +29,15 @@ export default {
       <h3 class="text-lg font-semibold text-green-600">
         ✅ AccuKnox CWPP is activated.
       </h3>
+
+      <button
+        v-if="!hardeningAvailable"
+        class="btn role-secondary mt-4"
+        @click="$emit('install-hardening')"
+      >
+        Install Hardening Policies
+      </button>
     </div>
-
-    <button
-      v-if="hardeningAvailable"
-      class="btn role-secondary mt-4"
-      @click="$emit('install-hardening')"
-    >
-      Install Hardening Policies
-    </button>
-
-
     <div v-else>
       <div class="mt-4">
         <button
@@ -51,18 +49,18 @@ export default {
           Install Repos
         </button>
 
+        <span v-else-if="!uiService && !chartReady" class="text-sm text-gray-500 ml-2">
+          ⏳ Preparing chart... Please wait
+        </span>
+
         <button
-          v-else-if="chartReady"
+          v-else-if="chartReady && !uiService"
           class="btn role-secondary"
           :disabled="isInstalling"
           @click="$emit('open-modal')"
         >
           Install Charts
         </button>
-
-        <span v-else class="text-sm text-gray-500 ml-2">
-          ⏳ Preparing chart... Please wait
-        </span>
       </div>
 
       <div v-if="showModal" class="modal-overlay">
