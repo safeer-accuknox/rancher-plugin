@@ -7,6 +7,7 @@ export default {
     allReposPresent: Boolean,
     isInstalling: Boolean,
     showModal: Boolean,
+    hardeningAvailable: Boolean,
     form: Object,
   },
   watch: {
@@ -29,6 +30,15 @@ export default {
         ✅ AccuKnox CWPP is activated.
       </h3>
     </div>
+
+    <button
+      v-if="hardeningAvailable"
+      class="btn role-secondary mt-4"
+      @click="$emit('install-hardening')"
+    >
+      Install Hardening Policies
+    </button>
+
 
     <div v-else>
       <div class="mt-4">

@@ -26,7 +26,8 @@ export default {
       showModal: false,
       allReposPresent: false,
       chartReady: false,
-      url: window.location.origin
+      url: window.location.origin,
+      hardeningAvailable: false
     };
   },
 
@@ -46,6 +47,8 @@ export default {
     if (this.allReposPresent) {
       await this.checkChartAvailability('accuknox-charts');
     }
+
+    this.hardeningAvailable = Boolean(this.allReposPresent && this.chartReady && this.uiService);
   },
 
   methods: {
@@ -132,6 +135,41 @@ export default {
       ];
     },
 
+    async installHardeningChart() {
+      const data = {
+        charts: [
+          {
+            chartName: 'accuknox-cwpp-hardening-policies',
+            version: '0.1.0',
+            releaseName: 'accuknox-cwpp-hardening-policies',
+            annotations: {
+              'catalog.cattle.io/ui-source-repo-type': 'cluster',
+              'catalog.cattle.io/ui-source-repo': 'accuknox-charts'
+            },
+            values: {}
+          }
+        ],
+        namespace: 'kubearmor',
+        projectId: this.cluster.projectId,
+        timeout: '600s',
+        wait: true
+      };
+
+      try {
+        await this.$store.dispatch('cluster/request', {
+          url: 'v1/catalog.cattle.io.clusterrepos/accuknox-charts?action=install',
+          method: 'POST',
+          data
+        });
+        this.$store.dispatch('growl/success', {
+          title: 'Hardening Policies Installed',
+          message: 'accuknox-cwpp-hardening-policies installed successfully'
+        });
+      } catch (e) {
+        handleGrowl({ error: e, store: this.$store });
+      }
+    },
+
     async installCharts() {
       this.showModal = false;
       this.isInstalling = true;
@@ -196,11 +234,12 @@ export default {
         :form="form"
         :is-installing="isInstalling"
         :show-modal="showModal"
+        :hardening-available="hardeningAvailable"
         @install-repos="installRepos"
         @install-charts="installCharts"
         @open-modal="openModalWithDefaults"
-        @update-form="(val) => form = val"
         @close-modal="() => showModal = false"
+        @install-hardening="installHardeningChart"
       />
     </div>
   </div>
