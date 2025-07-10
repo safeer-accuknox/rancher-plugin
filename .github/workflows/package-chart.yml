@@ -72,7 +72,9 @@ jobs:
         run: |
           docker images -a
           image="docker.io/safeeraccuknox/demo:$TAG_NAME"
+          echo $image
           new_image="${image%-*}:${image##*-}"
+          echo $new_image
           docker tag $new_image accuknox-ui-extention:build
           docker build -t .
           docker build -t safeeraccuknox/demo:latest .
