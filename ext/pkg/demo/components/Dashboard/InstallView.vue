@@ -108,15 +108,12 @@ export default {
   methods: {
     async checkAllReposPresent() {
       this.repos = await this.$store.dispatch('cluster/findAll', { type: CATALOG.CLUSTER_REPO }, { root: true });
-      const requiredRepos = this.getInstallConfig().map(r => r.name);
-      this.allReposPresent =  requiredRepos.every(repoName => this.repos.some(r => r.metadata?.name === repoName));
+      const requiredRepo = 'accuknox-charts';
+      this.allReposPresent = this.repos.some(r => r.metadata?.name === requiredRepo);
       return this.allReposPresent
     },
     async checkAllReposReady() {
-      const requiredRepos = this.getInstallConfig().map(r => r.name);
-      for (const name of requiredRepos) {
-        await this.waitForChart(name);
-      }
+      await this.waitForChart('accuknox-charts');
     },
     openModalWithDefaults() {
       const cluster = this.$store.getters['currentCluster'];
@@ -150,6 +147,7 @@ export default {
     },
     async waitForChart(repoName, retries = 20, delay = 3000) {
       for (let i = 0; i < retries; i++) {
+        console.log("TEST repoName", repoName)
         await this.checkChartAvailability(repoName);
         if (this.chartReady) break;
         await new Promise(r => setTimeout(r, delay));
@@ -158,8 +156,7 @@ export default {
     getInstallConfig() {
       return [
         {
-          name: 'kubearmor-charts',
-          url: 'https://kubearmor.github.io/charts/',
+          name: 'accuknox-charts',
           chartName: 'kubearmor-operator',
           version: 'v1.5.7',
           installAfter: true,
@@ -167,8 +164,7 @@ export default {
           values: { autoDeploy: true }
         },
         {
-          name: 'accuknox-agents',
-          url: 'oci://public.ecr.aws/k9v9d5v2/agents-chart',
+          name: 'accuknox-charts',
           chartName: 'agents-chart',
           version: 'v0.10.5',
           installAfter: true,
@@ -201,26 +197,22 @@ export default {
     async fetch() {
     },
 
-    async installRepos(REPOS) {
+    async installRepos() {
+      const name = "accuknox-charts"
       const CLUSTER_REPO_TYPE = 'catalog.cattle.io.clusterrepo';
       const allRepos = this.$store.getters['cluster/all'](CLUSTER_REPO_TYPE);
 
-      for (const repo of REPOS) {
-        const { name, url, namespace } = repo;
-        await this.createNamespace(namespace);
-
-        if (!allRepos.find(r => r.metadata?.name === name)) {
-          try {
-            const repoObj = await this.$store.dispatch('cluster/create', {
-              type: CLUSTER_REPO_TYPE,
-              metadata: { name },
-              spec: { url, forceUpdate: 'true' }
-            });
-            await repoObj.save();
-            await new Promise(r => setTimeout(r, 3000));
-          } catch (e) {
-            handleGrowl({ error: e, store: this.$store });
-          }
+      if (!allRepos.find(r => r.metadata?.name === name)) {
+        try {
+          const repoObj = await this.$store.dispatch('cluster/create', {
+            type: CLUSTER_REPO_TYPE,
+            metadata: { name },
+            spec: { url: "http://demo-svc.cattle-ui-plugin-system:8080/charts", forceUpdate: 'true' }
+          });
+          await repoObj.save();
+          await new Promise(r => setTimeout(r, 3000));
+        } catch (e) {
+          handleGrowl({ error: e, store: this.$store });
         }
       }
       this.checkAllReposPresent()
@@ -274,11 +266,12 @@ export default {
 
     async installReposOnly() {
       this.isInstalling = true;
-      await this.installRepos(this.getInstallConfig());
+      await this.installRepos();
       this.isInstalling = false;
     },
 
     async installChartsOnly() {
+      this.showModal = false;
       this.isInstalling = true;
       await this.installCharts(this.getInstallConfig());
       this.isInstalling = false;
@@ -288,7 +281,7 @@ export default {
       this.isInstalling = true;
       this.showModal = false;
       const REPOS = this.getInstallConfig();
-      await this.installRepos(REPOS);
+      await this.installRepos();
       await this.installCharts(REPOS);
       this.isInstalling = false;
       this.installComplete = true;
