@@ -1,9 +1,7 @@
+// ./index.ts
 import { importTypes } from '@rancher/auto-import';
-import { IPlugin, TableColumnLocation, PanelLocation, TabLocation } from '@shell/core/types';
+import { IPlugin } from '@shell/core/types';
 import accuknoxRouting from './routing/accuknox-routing';
-import {
-  NAMESPACE, POD, WORKLOAD_TYPES, INGRESS, SERVICE, NODE
-} from '@shell/config/types';
 
 // Init the package
 export default function(plugin: IPlugin) {
@@ -14,9 +12,9 @@ export default function(plugin: IPlugin) {
   // it will grab information such as `name` and `description`
   plugin.metadata = require('./package.json');
 
+  // Load a product
   plugin.addProduct(require('./accuknox'));
 
-  // // Add Vue Routes
+  // Add Vue Routes
   plugin.addRoutes(accuknoxRouting);
-
 }
