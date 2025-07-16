@@ -3,10 +3,33 @@
     <h1 class="text-xl font-semibold mb-4">Clusters</h1>
 
     <ul class="mb-4">
-      <li v-for="cluster in clusters" :key="cluster.id">
-        {{ cluster.nameDisplay || cluster.id }}
+      <li v-for="cluster in clusterDetails" :key="cluster.id">
+        {{ cluster.id }}
       </li>
     </ul>
+
+    <table class="table-auto w-full mb-6 border">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="px-4 py-2 border">Cluster</th>
+          <th class="px-4 py-2 border">Repo Status</th>
+          <th class="px-4 py-2 border">Chart Ready</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="cluster in clusterDetails" :key="cluster.id">
+          <td class="px-4 py-2 border">{{ cluster.id }}</td>
+          <td class="px-4 py-2 border">
+            <span v-if="cluster.allReposPresent">✅ Installed</span>
+            <span v-else>❌ Not Installed</span>
+          </td>
+          <td class="px-4 py-2 border">
+            <span v-if="cluster.allChartsPresent">✅ Ready</span>
+            <span v-else>❌ Not Ready</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
     <button class="btn role-primary" @click="installReposForAllClusters">
       Install Repos to All Clusters
@@ -27,8 +50,8 @@
         <label>Access Key</label>
         <input v-model="form.accessKey" class="input" placeholder="Enter Access Key" />
 
-        <label class="mt-4">Cluster Name</label>
-        <input v-model="form.clusterName" class="input" placeholder="Cluster Name" />
+        <label class="mt-4">Cluster Name Prefix</label>
+        <input v-model="form.clusterNamePrefix" class="input" placeholder="Cluster Name Prefix" />
 
         <label class="mt-4">Token URL</label>
         <input v-model="form.tokenURL" class="input" placeholder="cwpp.demo.accuknox.com" />
@@ -64,6 +87,7 @@ import { handleGrowl } from '../utils/handle-growl';
 export default {
   data() {
     return {
+      clusterDetails: [],
       clusters: [],
       message: '',
       form: {
@@ -86,18 +110,58 @@ export default {
       const res = await this.$store.dispatch('management/findAll', {
         type: MANAGEMENT.CLUSTER,
       });
-      this.clusters = res || [];
+      const clusters = res || [];
+      const clusterDetails = []
+      for (const cluster of clusters) {
+        await this.$store.dispatch('management/find', { type: MANAGEMENT.CLUSTER, id: cluster.id });
+        const allRepos = await this.$store.dispatch('management/findAll', { type: CATALOG.CLUSTER_REPO }, { force: true });
+        const allReposPresent = this.checkAllReposPresent(allRepos);
+
+        let allChartsPresent = false
+        if (allReposPresent) {
+          allChartsPresent = await this.checkChartAvailability(cluster.id);
+        }
+
+        clusterDetails.push({
+          id: cluster.id,
+          name: cluster.clusterName,
+          systemProjectId: cluster.systemProjectId,
+          repos: allRepos,
+          allReposPresent: allReposPresent,
+          allChartsPresent: allChartsPresent,
+        });
+      }
+      this.clusterDetails = clusterDetails
+
     } catch (e) {
       handleGrowl({ error: e, store: this.$store });
     }
   },
 
   methods: {
+    checkAllReposPresent(allRepos) {
+      const requiredRepo = 'accuknox-charts';
+      return allRepos.some(r => r.metadata?.name === requiredRepo);
+    },
+    async checkChartAvailability(clusterId) {
+      const repoName = 'accuknox-charts'
+      try {
+          const response = await this.$store.dispatch('cluster/request', {
+            url: `v1/catalog.cattle.io.clusterrepos/${repoName}?link=index`,
+            method: 'GET',
+            headers: {
+              'x-api-c-cluster': clusterId
+            }
+          });
+        return !!response?.entries;
+      } catch {
+        return false;
+      }
+    },
     openModalWithDefaults() {
-      const cluster = this.clusters?.[0] || {}; // Default to first cluster
       this.form = {
         accessKey: '',
-        clusterName: cluster.id || '',
+        clusterName: '',
         tokenURL: 'cwpp.demo.accuknox.com',
         spireHost: 'spire.demo.accuknox.com',
         ppsHost: 'pps.demo.accuknox.com',
@@ -108,7 +172,7 @@ export default {
       this.showModal = true;
     },
 
-    getInstallConfig() {
+    getInstallConfig(clusterName) {
       return [
         {
           name: 'accuknox-charts',
@@ -123,7 +187,7 @@ export default {
           version: 'v0.10.5',
           namespace: 'agents',
           values: {
-            clusterName: this.form.clusterName,
+            clusterName: `${this.form.clusterNamePrefix}${clusterName}`,
             accessKey: this.form.accessKey,
             spireHost: this.form.spireHost,
             tokenURL: this.form.tokenURL,
@@ -140,49 +204,52 @@ export default {
       this.showModal = false;
       this.isInstalling = true;
 
-      const cluster = this.clusters.find(c => c.id === this.form.clusterName);
-      const charts = this.getInstallConfig();
+      for (const cluster of this.clusterDetails) {
+        const charts = this.getInstallConfig(cluster.id);
 
-      for (const chart of charts) {
-        const data = {
-          charts: [
-            {
-              chartName: chart.chartName,
-              version: chart.version,
-              releaseName: chart.chartName,
-              annotations: {
-                'catalog.cattle.io/ui-source-repo-type': 'cluster',
-                'catalog.cattle.io/ui-source-repo': chart.name
-              },
-              values: {
-                ...chart.values,
-                global: {
-                  cattle: {
-                    clusterId: cluster.id,
-                    clusterName: cluster.name,
-                    systemProjectId: cluster.systemProjectId,
-                    url: this.url
+        for (const chart of charts) {
+          const data = {
+            charts: [
+              {
+                chartName: chart.chartName,
+                version: chart.version,
+                releaseName: chart.chartName,
+                annotations: {
+                  'catalog.cattle.io/ui-source-repo-type': 'cluster',
+                  'catalog.cattle.io/ui-source-repo': chart.name
+                },
+                values: {
+                  ...chart.values,
+                  global: {
+                    cattle: {
+                      clusterId: cluster.id,
+                      clusterName: cluster.name,
+                      systemProjectId: cluster.systemProjectId,
+                      url: this.url
+                    }
                   }
                 }
               }
-            }
-          ],
-          namespace: chart.namespace,
-          projectId: cluster.projectId,
-          timeout: '600s',
-          wait: true
-        };
+            ],
+            namespace: chart.namespace,
+            projectId: cluster.projectId,
+            timeout: '600s',
+            wait: true
+          };
 
-        try {
-          await this.$store.dispatch('cluster/request', {
-            url: `v1/catalog.cattle.io.clusterrepos/${chart.name}?action=install`,
-            method: 'POST',
-            data
-          });
-        } catch (e) {
-          handleGrowl({ error: e, store: this.$store });
+          try {
+            await this.$store.dispatch('cluster/request', {
+              url: `v1/catalog.cattle.io.clusterrepos/${chart.name}?action=install`,
+              method: 'POST',
+              data
+            });
+          } catch (e) {
+            handleGrowl({ error: e, store: this.$store });
+          }
         }
       }
+
+      
 
       this.isInstalling = false;
     },
@@ -218,7 +285,7 @@ export default {
     },
 
     async installReposForAllClusters() {
-      for (const cluster of this.clusters) {
+      for (const cluster of this.clusterDetails) {
         await this.installRepos(cluster.id);
       }
     },
