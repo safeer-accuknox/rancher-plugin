@@ -106,8 +106,11 @@ export default {
       const clusters = res || [];
       const clusterDetails = []
       for (const cluster of clusters) {
-        await this.$store.dispatch('management/find', { type: MANAGEMENT.CLUSTER, id: cluster.id });
-        const allRepos = await this.$store.dispatch('management/findAll', { type: CATALOG.CLUSTER_REPO }, { force: true });
+        const res = await this.$store.dispatch('management/request', {
+          url:    `/k8s/clusters/${ cluster.id }/v1/catalog.cattle.io.clusterrepo`,
+          method: 'GET',
+        });
+        const allRepos = res.data
         const allReposPresent = this.checkAllReposPresent(allRepos);
 
         let allChartsPresent = false
@@ -134,7 +137,8 @@ export default {
   methods: {
     checkAllReposPresent(allRepos) {
       const requiredRepo = 'accuknox-charts';
-      return allRepos.some(r => r.metadata?.name === requiredRepo);
+      console.log(allRepos)
+      return allRepos.some(r => r.id === requiredRepo);
     },
     async checkChartAvailability(clusterId) {
       const repoName = 'accuknox-charts'
@@ -253,25 +257,30 @@ export default {
       const opt = { cluster: clusterId };
 
       try {
-        await this.$store.dispatch('management/find', { type: MANAGEMENT.CLUSTER, id: clusterId });
-        const allRepos = await this.$store.dispatch('management/findAll', { type: CATALOG.CLUSTER_REPO }, { force: true });
+        const res = await this.$store.dispatch('management/request', {
+          url:    `/k8s/clusters/${ clusterId }/v1/catalog.cattle.io.clusterrepo`,
+          method: 'GET',
+        });
+        const allRepos = res.data
 
-        const exists = allRepos.find(r => r.metadata?.name === name);
+        const exists = allRepos.find(r => r.id === name);
         if (exists) {
           console.log(`ℹ️ Repo already exists in ${clusterId}`);
           return;
         }
 
-        const repo = await this.$store.dispatch('management/create', {
-          type: CATALOG.CLUSTER_REPO,
-          metadata: { name },
-          spec: {
-            url: 'http://demo-svc.cattle-ui-plugin-system:8080/charts',
-            forceUpdate: 'true',
-          },
+        const repo = await this.$store.dispatch('management/request', {
+          url:    `/k8s/clusters/${ clusterId }/v1/catalog.cattle.io.clusterrepo`,
+          method: 'POST',
+          data: {
+            metadata: { name },
+            spec: {
+              url: 'http://demo-svc.cattle-ui-plugin-system:8080/charts',
+              forceUpdate: 'true',
+            },
+          }
         });
 
-        await repo.save();
         console.log(`✅ Repo installed in ${clusterId}`);
       } catch (e) {
         handleGrowl({ error: e, store: this.$store });
