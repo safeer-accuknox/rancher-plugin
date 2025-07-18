@@ -1,47 +1,40 @@
 <template>
   <div class="container p-4">
-    <h1 class="text-xl font-semibold mb-4">Clusters</h1>
 
-    <ul class="mb-4">
-      <li v-for="cluster in clusterDetails" :key="cluster.id">
-        {{ cluster.id }}
-      </li>
-    </ul>
+    <div class="button-bar">
+    <button class="btn btn-primary" @click="installReposForAllClusters">
+      Install Repos to All Clusters
+    </button>
+    <button class="btn btn-primary" :disabled="isInstalling" @click="openModalWithDefaults">
+      Install Charts
+    </button>
+  </div>
 
-    <table class="table-auto w-full mb-6 border">
+
+    <table class="modern-table">
       <thead>
-        <tr class="bg-gray-100">
-          <th class="px-4 py-2 border">Cluster</th>
-          <th class="px-4 py-2 border">Repo Status</th>
-          <th class="px-4 py-2 border">Chart Ready</th>
+        <tr>
+          <th>Cluster</th>
+          <th>Repo Status</th>
+          <th>Chart Ready</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="cluster in clusterDetails" :key="cluster.id">
-          <td class="px-4 py-2 border">{{ cluster.id }}</td>
-          <td class="px-4 py-2 border">
-            <span v-if="cluster.allReposPresent">✅ Installed</span>
-            <span v-else>❌ Not Installed</span>
+        <tr v-for="(cluster, index) in clusterDetails" :key="cluster.id">
+          <td>{{ cluster.id }}</td>
+          <td>
+            <span :class="cluster.allReposPresent ? 'status-green' : 'status-red'">
+              {{ cluster.allReposPresent ? '✅ Installed' : '❌ Not Installed' }}
+            </span>
           </td>
-          <td class="px-4 py-2 border">
-            <span v-if="cluster.allChartsPresent">✅ Ready</span>
-            <span v-else>❌ Not Ready</span>
+          <td>
+            <span :class="cluster.allChartsPresent ? 'status-green' : 'status-red'">
+              {{ cluster.allChartsPresent ? '✅ Ready' : '❌ Not Ready' }}
+            </span>
           </td>
         </tr>
       </tbody>
     </table>
-
-    <button class="btn role-primary" @click="installReposForAllClusters">
-      Install Repos to All Clusters
-    </button>
-
-    <button
-      class="btn role-secondary mt-4"
-      :disabled="isInstalling"
-      @click="openModalWithDefaults"
-    >
-      Install Charts
-    </button>
 
     <div v-if="showModal" class="modal-overlay">
       <div class="modal-content">
@@ -153,6 +146,7 @@ export default {
               'x-api-c-cluster': clusterId
             }
           });
+          console.log("#123", response)
         return !!response?.entries;
       } catch {
         return false;
@@ -294,12 +288,43 @@ export default {
 </script>
 
 <style scoped>
+.button-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
 .btn {
-  background-color: #006aff;
-  color: white;
-  padding: 8px 16px;
+  padding: 10px 16px;
   border-radius: 6px;
-  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.btn-secondary:hover {
+  background-color: #e5e7eb;
+}
+
+.btn:disabled {
+  background-color: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
 }
 .modal-overlay {
   position: fixed;
@@ -324,5 +349,47 @@ export default {
   margin-top: 4px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.modern-table thead {
+  background-color: #f3f4f6;
+  color: #111827;
+  font-weight: 600;
+}
+
+.modern-table th,
+.modern-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.modern-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.modern-table tbody tr:hover {
+  background-color: #f0fdf4;
+}
+
+.status-green {
+  color: #059669; /* emerald-600 */
+  font-weight: 500;
+}
+
+.status-red {
+  color: #dc2626; /* red-600 */
+  font-weight: 500;
 }
 </style>
