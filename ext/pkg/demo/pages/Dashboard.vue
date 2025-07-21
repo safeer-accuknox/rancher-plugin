@@ -120,7 +120,7 @@ export default {
 
         clusterDetails.push({
           id: cluster.id,
-          name: cluster.clusterName,
+          name: cluster.spec.displayName,
           systemProjectId: cluster.systemProjectId,
           repos: allRepos,
           allReposPresent: allReposPresent,
@@ -128,7 +128,6 @@ export default {
         });
       }
       this.clusterDetails = clusterDetails
-
     } catch (e) {
       handleGrowl({ error: e, store: this.$store });
     }
@@ -137,7 +136,6 @@ export default {
   methods: {
     checkAllReposPresent(allRepos) {
       const requiredRepo = 'accuknox-charts';
-      console.log(allRepos)
       return allRepos.some(r => r.id === requiredRepo);
     },
     async checkChartAvailability(clusterId) {
@@ -148,7 +146,6 @@ export default {
             method: 'GET',
           });
 
-          console.log("#123", response)
         return !!response?.entries;
       } catch {
         return false;
@@ -201,7 +198,10 @@ export default {
       this.isInstalling = true;
 
       for (const cluster of this.clusterDetails) {
-        const charts = this.getInstallConfig(cluster.id);
+        console.log(cluster)
+        const cleanName = cluster.name.replace(/[^a-zA-Z0-9]/g, '');
+        console.log(cleanName)
+        const charts = this.getInstallConfig(cleanName);
 
         for (const chart of charts) {
           const data = {
@@ -289,10 +289,6 @@ export default {
         const allRepos = res.data
 
         const exists = allRepos.find(r => r.id === name);
-        // if (exists) {
-        //   console.log(`ℹ️ Repo already exists in ${clusterId}`);
-        //   return;
-        // }
 
         await this.createNamespace(clusterId, 'agents')
 
@@ -435,8 +431,6 @@ export default {
           title: (`Repo installed in ${clusterId}`),
           message: ''
         });
-
-        console.log(`Repo installed in ${clusterId}`);
       } catch (e) {
         handleGrowl({ error: e, store: this.$store });
       }

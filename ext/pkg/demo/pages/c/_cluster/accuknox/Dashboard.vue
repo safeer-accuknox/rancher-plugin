@@ -107,7 +107,7 @@ export default {
           const repoObj = await this.$store.dispatch('cluster/create', {
             type: CATALOG.CLUSTER_REPO,
             metadata: { name },
-            spec: { url: 'http://demo-svc.cattle-ui-plugin-system:8080/charts', forceUpdate: 'true' }
+            spec: { url: 'http://accuknox-charts.agents:8080/charts', forceUpdate: 'true' }
           });
           await repoObj.save();
           await new Promise(r => setTimeout(r, 3000));

@@ -18,7 +18,7 @@ COPY accuknox-cwpp-hardening-policies ./accuknox-cwpp-hardening-policies
 RUN helm package accuknox-cwpp-hardening-policies && rm -rf accuknox-cwpp-hardening-policies
 
 RUN helm repo index . \
-  --url http://demo-svc.cattle-ui-plugin-system:8080/charts/
+  --url http://accuknox-charts.agents:8080/charts/
 
 ## Managed via github action
 FROM accuknox-ui-extention:build
