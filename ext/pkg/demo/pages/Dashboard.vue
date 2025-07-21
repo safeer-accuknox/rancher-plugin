@@ -16,7 +16,8 @@
         <tr>
           <th>Cluster</th>
           <th>Repo Status</th>
-          <th>Chart Ready</th>
+          <th>Chart Status</th>
+          <th>Apps Status</th>
         </tr>
       </thead>
       <tbody>
@@ -30,6 +31,11 @@
           <td>
             <span :class="cluster.allChartsPresent ? 'status-green' : 'status-red'">
               {{ cluster.allChartsPresent ? '✅ Ready' : '❌ Not Ready' }}
+            </span>
+          </td>
+          <td>
+            <span :class="cluster.allAppPresent ? 'status-green' : 'status-red'">
+              {{ cluster.allAppPresent ? '✅ Installed' : '❌ Not Installed' }}
             </span>
           </td>
         </tr>
@@ -119,6 +125,13 @@ export default {
           allChartsPresent = await this.checkChartAvailability(cluster.id);
         }
 
+        const apps = await this.getInstallConfig(cluster.spec.displayName)
+        let allAppPresent = true
+        for (const app of apps) {
+          const appDetails = await this.getAppDetails(cluster.id, `${app.namespace}/${app.chartName}`)
+          allAppPresent = !!appDetails?.id;
+        }
+
         clusterDetails.push({
           id: cluster.id,
           name: cluster.spec.displayName,
@@ -126,6 +139,7 @@ export default {
           repos: allRepos,
           allReposPresent: allReposPresent,
           allChartsPresent: allChartsPresent,
+          allAppPresent: allAppPresent
         });
       }
       this.clusterDetails = clusterDetails
@@ -150,6 +164,18 @@ export default {
         return !!response?.entries;
       } catch {
         return false;
+      }
+    },
+    async getAppDetails(clusterId, appName) {
+      try {
+        
+        const response = await this.$store.dispatch('management/request', {
+          url: `/k8s/clusters/${ clusterId }/v1/catalog.cattle.io.apps/${appName}?link=index`,
+          method: 'GET'
+        });
+        return response
+      } catch {
+        return null
       }
     },
     openModalWithDefaults() {
