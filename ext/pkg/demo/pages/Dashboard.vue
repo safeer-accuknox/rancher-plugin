@@ -289,10 +289,10 @@ export default {
         const allRepos = res.data
 
         const exists = allRepos.find(r => r.id === name);
-        if (exists) {
-          console.log(`ℹ️ Repo already exists in ${clusterId}`);
-          return;
-        }
+        // if (exists) {
+        //   console.log(`ℹ️ Repo already exists in ${clusterId}`);
+        //   return;
+        // }
 
         await this.createNamespace(clusterId, 'agents')
 
@@ -411,19 +411,32 @@ export default {
           }
         }
 
-        const repo = await this.$store.dispatch('management/request', {
-          url:    `/k8s/clusters/${ clusterId }/v1/catalog.cattle.io.clusterrepo`,
-          method: 'POST',
-          data: {
-            metadata: { name },
-            spec: {
-              url: 'http://accuknox-charts.agents:8080/charts',
-              forceUpdate: 'true',
-            },
+        try {
+          const repo = await this.$store.dispatch('management/request', {
+            url:    `/k8s/clusters/${ clusterId }/v1/catalog.cattle.io.clusterrepo`,
+            method: 'POST',
+            data: {
+              metadata: { name },
+              spec: {
+                url: 'http://accuknox-charts.agents:8080/charts',
+                forceUpdate: 'true',
+              },
+            }
+          });
+        } catch (error) {
+          const status = error?.status;
+
+          if (status !== 409) {
+            throw error;
           }
+        }
+
+        this.$store.dispatch('growl/success', {
+          title: (`Repo installed in ${clusterId}`),
+          message: ''
         });
 
-        console.log(`✅ Repo installed in ${clusterId}`);
+        console.log(`Repo installed in ${clusterId}`);
       } catch (e) {
         handleGrowl({ error: e, store: this.$store });
       }
