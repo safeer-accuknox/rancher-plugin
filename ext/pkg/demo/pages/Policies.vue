@@ -6,15 +6,15 @@ export default {
     return {
       policies: [],
       loading: true,
-      error: null
+      error: null,
+      clusterId: this.$route.params.cluster
     };
   },
   async mounted() {
     try {
-      const clusterId = this.$route.params.cluster;
 
       const response = await this.$store.dispatch('management/request', {
-        url: `/k8s/clusters/${ clusterId }/v1/security.kubearmor.com.KubeArmorClusterPolicy?exclude=metadata.managedFields`,
+        url: `/k8s/clusters/${ this.clusterId }/v1/security.kubearmor.com.KubeArmorClusterPolicy?exclude=metadata.managedFields`,
         method: 'GET'
       });
 
@@ -22,12 +22,13 @@ export default {
       this.policies = this.policies.concat(KubeArmorClusterPolicy);
 
       const responseKubeArmorPolicy = await this.$store.dispatch('management/request', {
-        url: `/k8s/clusters/${ clusterId }/v1/security.kubearmor.com.KubeArmorPolicy?exclude=metadata.managedFields`,
+        url: `/k8s/clusters/${ this.clusterId }/v1/security.kubearmor.com.KubeArmorPolicy?exclude=metadata.managedFields`,
         method: 'GET'
       });
 
       const KubeArmorPolicy = responseKubeArmorPolicy?.data || [];
       this.policies = this.policies.concat(KubeArmorPolicy);
+      console.log(this.loading)
     } catch (e) {
       this.error = e;
       handleGrowl({ error: e, store: this.$store });
@@ -56,7 +57,17 @@ export default {
       </thead>
       <tbody>
         <tr v-for="policy in policies" :key="policy.metadata.uid" class="hover:bg-gray-50">
-          <td class="p-2 border-b">{{ policy.metadata.name }}</td>
+          <td>
+            <span class='status-green'>
+                <a
+                
+                  :href="`/c/${clusterId}/explorer/security.kubearmor.com.${policy.kind.toLowerCase()}/${policy.metadata.name}`"
+                  class="underline text-blue-600 hover:text-blue-800"
+                >
+                {{ policy.metadata.name }}
+                </a>
+            </span>
+          </td>
           <td class="p-2 border-b">{{ policy.metadata.namespace || 'cluster-wide' }}</td>
           <td class="p-2 border-b">
             {{ new Date(policy.metadata.creationTimestamp).toLocaleString() }}
