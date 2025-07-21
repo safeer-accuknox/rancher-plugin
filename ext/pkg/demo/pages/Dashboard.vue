@@ -2,10 +2,10 @@
   <div class="container p-4">
 
     <div class="button-bar">
-    <button class="btn btn-primary" @click="installReposForAllClusters">
+    <button class="btn btn-primary" :disabled="repoInstalling"  @click="installReposForAllClusters">
       Install Repos to All Clusters
     </button>
-    <button class="btn btn-primary" :disabled="isInstalling" @click="openModalWithDefaults">
+    <button class="btn btn-primary" :disabled="chartInstalling" @click="openModalWithDefaults">
       Install Charts
     </button>
   </div>
@@ -94,7 +94,8 @@ export default {
         kyverno: false
       },
       showModal: false,
-      isInstalling: false,
+      repoInstalling: false,
+      chartInstalling: false,
     };
   },
 
@@ -195,12 +196,10 @@ export default {
 
     async installCharts() {
       this.showModal = false;
-      this.isInstalling = true;
+      this.chartInstalling = true;
 
       for (const cluster of this.clusterDetails) {
-        console.log(cluster)
         const cleanName = cluster.name.replace(/[^a-zA-Z0-9]/g, '');
-        console.log(cleanName)
         const charts = this.getInstallConfig(cleanName);
 
         for (const chart of charts) {
@@ -227,6 +226,7 @@ export default {
                 }
               }
             ],
+            forceUpdate: 'true',
             namespace: chart.namespace,
             projectId: cluster.projectId,
             timeout: '600s',
@@ -234,11 +234,12 @@ export default {
           };
 
           try {
-            await this.$store.dispatch('cluster/request', {
-              url: `v1/catalog.cattle.io.clusterrepos/${chart.name}?action=install`,
+            const response = await this.$store.dispatch('rancher/request', {
+              url: `/k8s/clusters/${cluster.id}/v1/catalog.cattle.io.clusterrepos/${chart.name}?action=install`,
               method: 'POST',
               data
             });
+
           } catch (e) {
             handleGrowl({ error: e, store: this.$store });
           }
@@ -247,7 +248,7 @@ export default {
 
       
 
-      this.isInstalling = false;
+      this.chartInstalling = false;
     },
 
     async createNamespace(clusterId, ns) {
@@ -280,6 +281,8 @@ export default {
     async installRepos(clusterId) {
       const name = 'accuknox-charts';
       const opt = { cluster: clusterId };
+      this.repoInstalling = true;
+
 
       try {
         const res = await this.$store.dispatch('management/request', {
@@ -434,6 +437,8 @@ export default {
       } catch (e) {
         handleGrowl({ error: e, store: this.$store });
       }
+
+      this.repoInstalling = false;
     },
 
     async installReposForAllClusters() {
