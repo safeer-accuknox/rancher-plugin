@@ -3,12 +3,12 @@
 
     <div class="button-bar">
     <button class="btn btn-primary" :disabled="repoInstalling"  @click="installReposForAllClusters">
-      Install Repos to All Clusters
+      Install Repos
     </button>
     <button class="btn btn-primary" :disabled="chartInstalling" @click="openModalWithDefaults">
       Install Charts
     </button>
-    <button class="btn btn-primary" :disabled="chartInstalling" @click="installHardeningChartForAllClusters">
+    <button class="btn btn-primary" :disabled="hardeningChartInstalling" @click="installHardeningChartForAllClusters">
       Install Hardening Policies
     </button>
   </div>
@@ -203,11 +203,11 @@ export default {
           data
         });
         this.$store.dispatch('growl/success', {
-          title: 'Hardening Policies Installed',
+          title: `Hardening Policies Installed on ${cluster.name}`,
           message: 'accuknox-cwpp-hardening-policies installed successfully'
         });
       } catch (e) {
-        handleGrowl({ error: e, store: this.$store });
+        handleGrowl({ error: e, store: this.$store, overrideStatusText: `AccuKnox Charts are ${e._statusText.toLowerCase()} on ${cluster.name}` });
       }
     },
     async getAppDetails(clusterId, appName) {
@@ -308,6 +308,11 @@ export default {
               url: `/k8s/clusters/${cluster.id}/v1/catalog.cattle.io.clusterrepos/${chart.name}?action=install`,
               method: 'POST',
               data
+            });
+
+            this.$store.dispatch('growl/success', {
+              title: `AccuKnox ${chart.chartName} installed successfully  on ${cluster.name}`,
+              message: ''
             });
 
           } catch (e) {
