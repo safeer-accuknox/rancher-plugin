@@ -143,13 +143,11 @@ export default {
     async checkChartAvailability(clusterId) {
       const repoName = 'accuknox-charts'
       try {
-          const response = await this.$store.dispatch('cluster/request', {
-            url: `v1/catalog.cattle.io.clusterrepos/${repoName}?link=index`,
+          const response = await this.$store.dispatch('management/request', {
+            url:    `/k8s/clusters/${ clusterId }/v1/catalog.cattle.io.clusterrepos/${repoName}?link=index`,
             method: 'GET',
-            headers: {
-              'x-api-c-cluster': clusterId
-            }
           });
+
           console.log("#123", response)
         return !!response?.entries;
       } catch {
@@ -252,6 +250,33 @@ export default {
       this.isInstalling = false;
     },
 
+    async createNamespace(clusterId, ns) {
+      const nsPayload = {
+        apiVersion: "v1",
+        kind: "Namespace",
+        metadata: {
+          name: ns
+        }
+      };
+
+      try {
+        const response = await this.$store.dispatch('rancher/request', {
+          url: `/k8s/clusters/${clusterId}/v1/namespaces`,
+          method: 'POST',
+          data: nsPayload
+        });
+
+        return response;
+      } catch (error) {
+        const status = error?.status;
+
+        if (status === 409) {
+          return { alreadyExists: true, namespace: ns };
+        }
+        throw error;
+      }
+    },
+
     async installRepos(clusterId) {
       const name = 'accuknox-charts';
       const opt = { cluster: clusterId };
@@ -269,13 +294,127 @@ export default {
           return;
         }
 
+        await this.createNamespace(clusterId, 'agents')
+
+        const deploymentPayload = {
+            "type": "apps.deployment",
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": {
+                "labels": {
+                    "app": "accuknox-charts"
+                },
+                "name": "accuknox-charts",
+                "namespace": "agents"
+            },
+            "spec": {
+                "progressDeadlineSeconds": 600,
+                "replicas": 1,
+                "revisionHistoryLimit": 10,
+                "selector": {
+                    "matchLabels": {
+                        "app": "accuknox-charts"
+                    }
+                },
+                "strategy": {
+                    "rollingUpdate": {
+                        "maxSurge": "25%",
+                        "maxUnavailable": "25%"
+                    },
+                    "type": "RollingUpdate"
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "app": "accuknox-charts"
+                        },
+                        "namespace": "agents"
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "image": "safeeraccuknox/demo",
+                                "imagePullPolicy": "Always",
+                                "name": "container-0",
+                                "resources": {},
+                                "securityContext": {},
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File"
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "schedulerName": "default-scheduler",
+                        "securityContext": {},
+                        "terminationGracePeriodSeconds": 30
+                    }
+                }
+            },
+        }
+
+        try {
+          const deployment = await this.$store.dispatch('management/request', {
+            url:    `/k8s/clusters/${ clusterId }/v1/apps.deployments`,
+            method: 'POST',
+            data: deploymentPayload
+          });
+        } catch (error) {
+          const status = error?.status;
+
+          if (status !== 409) {
+            throw error;
+          }
+        }
+
+        const servicePayload = {
+            "type": "service",
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "name": "accuknox-charts",
+                "namespace": "agents",
+            },
+            "spec": {
+                "internalTrafficPolicy": "Cluster",
+                "ipFamilies": [
+                    "IPv4"
+                ],
+                "ipFamilyPolicy": "SingleStack",
+                "ports": [
+                    {
+                        "name": "port1",
+                        "port": 8080,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            }
+        }
+
+        try {
+          const service = await this.$store.dispatch('management/request', {
+            url:    `/k8s/clusters/${ clusterId }/v1//services`,
+            method: 'POST',
+            data: servicePayload
+          });
+        } catch (error) {
+          const status = error?.status;
+
+          if (status !== 409) {
+            throw error;
+          }
+        }
+
         const repo = await this.$store.dispatch('management/request', {
           url:    `/k8s/clusters/${ clusterId }/v1/catalog.cattle.io.clusterrepo`,
           method: 'POST',
           data: {
             metadata: { name },
             spec: {
-              url: 'http://demo-svc.cattle-ui-plugin-system:8080/charts',
+              url: 'http://accuknox-charts.agents:8080/charts',
               forceUpdate: 'true',
             },
           }
