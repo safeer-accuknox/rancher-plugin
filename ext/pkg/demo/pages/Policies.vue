@@ -1,5 +1,5 @@
 <script>
-import { handleGrowl } from '../../../../utils/handle-growl';
+import { handleGrowl } from '../utils/handle-growl';
 
 export default {
   data() {
@@ -11,16 +11,18 @@ export default {
   },
   async mounted() {
     try {
-      const response = await this.$store.dispatch('cluster/request', {
-        url: 'v1/security.kubearmor.com.KubeArmorClusterPolicy?exclude=metadata.managedFields',
+      const clusterId = this.$route.params.cluster;
+
+      const response = await this.$store.dispatch('management/request', {
+        url: `/k8s/clusters/${ clusterId }/v1/security.kubearmor.com.KubeArmorClusterPolicy?exclude=metadata.managedFields`,
         method: 'GET'
       });
 
       const KubeArmorClusterPolicy = response?.data || [];
       this.policies = this.policies.concat(KubeArmorClusterPolicy);
 
-      const responseKubeArmorPolicy = await this.$store.dispatch('cluster/request', {
-        url: 'v1/security.kubearmor.com.KubeArmorPolicy?exclude=metadata.managedFields',
+      const responseKubeArmorPolicy = await this.$store.dispatch('management/request', {
+        url: `/k8s/clusters/${ clusterId }/v1/security.kubearmor.com.KubeArmorPolicy?exclude=metadata.managedFields`,
         method: 'GET'
       });
 

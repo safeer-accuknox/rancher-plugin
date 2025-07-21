@@ -1,140 +1,7 @@
-<template>
-  <div class="container p-4">
-
-    <div class="button-bar">
-    <button class="btn btn-primary" :disabled="repoInstalling"  @click="installReposForSelectedClusters">
-      Install Repos
-    </button>
-    <button class="btn btn-primary" :disabled="chartInstalling" @click="openModalWithDefaults">
-      Install Charts
-    </button>
-    <button class="btn btn-primary" :disabled="hardeningChartInstalling" @click="installHardeningChartForSelectedClusters">
-      Install Hardening Policies
-    </button>
-  </div>
-
-
-    <table class="modern-table">
-      <thead>
-        <tr>
-          <th>
-            <input
-              type="checkbox"
-              v-model="selectAllClusterIds"
-              @change="toggleSelectAllClusterIds"
-            />
-            Select All
-          </th>
-          <th>Repo Status</th>
-          <th>Chart Status</th>
-          <th>Apps Status</th>
-          <th>Hardening Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(cluster, index) in clusterDetails" :key="cluster.id">
-          <td>
-            <input
-                type="checkbox"
-                :value="cluster.id"
-                v-model="selectedClusterIds"
-              />
-            {{ cluster.name }}
-          </td>
-          <td>
-            <span :class="cluster.allReposPresent ? 'status-green' : 'status-red'">
-              <template v-if="cluster.allReposPresent">
-                <a
-                  :href="`/c/${cluster.id}/apps/catalog.cattle.io.clusterrepo/accuknox-charts`"
-                  class="underline text-blue-600 hover:text-blue-800"
-                >
-                  View
-                </a>
-              </template>
-              <template v-else>
-                ❌ Not Installed
-              </template>
-            </span>
-          </td>
-          <td>
-            <span :class="cluster.allChartsPresent ? 'status-green' : 'status-red'">
-              {{ cluster.allChartsPresent ? '✅ Ready' : '❌ Not Ready' }}
-            </span>
-          </td>
-          <td>
-            <span :class="cluster.allAppPresent ? 'status-green' : 'status-red'">
-              <template v-if="cluster.allAppPresent">
-                <a
-                  :href="`/c/${cluster.id}/apps/catalog.cattle.io.app/agents/agents-chart`"
-                  class="underline text-blue-600 hover:text-blue-800"
-                >
-                  View
-                </a>
-              </template>
-              <template v-else>
-                ❌ Not Installed
-              </template>
-            </span>
-          </td>
-          <td>
-            <span :class="cluster.hardeningAvailable ? 'status-green' : 'status-red'">
-              <template v-if="cluster.hardeningAvailable">
-                <a
-                  :href="`/c/${cluster.id}/apps/catalog.cattle.io.app/kubearmor/accuknox-cwpp-hardening-policies`"
-                  class="underline text-blue-600 hover:text-blue-800"
-                >
-                  View
-                </a>
-              </template>
-              <template v-else>
-                ❌ Not Installed
-              </template>
-            </span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div v-if="showModal" class="modal-overlay">
-      <div class="modal-content">
-        <h2 class="text-lg font-bold mb-4">AccuKnox Agent Configuration</h2>
-
-        <label>Access Key</label>
-        <input v-model="form.accessKey" class="input" placeholder="Enter Access Key" />
-
-        <label class="mt-4">Cluster Name Prefix</label>
-        <input v-model="form.clusterNamePrefix" class="input" placeholder="Cluster Name Prefix" />
-
-        <label class="mt-4">Token URL</label>
-        <input v-model="form.tokenURL" class="input" placeholder="cwpp.demo.accuknox.com" />
-
-        <label class="mt-4">Spire Host</label>
-        <input v-model="form.spireHost" class="input" placeholder="spire.demo.accuknox.com" />
-
-        <label class="mt-4">PPS Host</label>
-        <input v-model="form.ppsHost" class="input" placeholder="pps.demo.accuknox.com" />
-
-        <label class="mt-4">Knox Gateway</label>
-        <input v-model="form.knoxGateway" class="input" placeholder="knox-gw.demo.accuknox.com:3000" />
-
-        <label class="mt-4 block">Enable Admission Controller</label>
-        <input type="checkbox" v-model="form.admissionController" />
-
-        <label class="mt-4 block">Enable Kyverno</label>
-        <input type="checkbox" v-model="form.kyverno" />
-
-        <div class="mt-6">
-          <button class="btn role-primary" @click="installCharts">Install</button>
-          <button class="btn ml-2" @click="showModal = false">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script>
 import { CATALOG, MANAGEMENT } from '@shell/config/types';
 import { handleGrowl } from '../utils/handle-growl';
+import Loading from '../components/Loading.vue';
 
 export default {
   data() {
@@ -152,6 +19,7 @@ export default {
         admissionController: false,
         kyverno: false
       },
+      loading: false,
       showModal: false,
       repoInstalling: false,
       chartInstalling: false,
@@ -160,7 +28,7 @@ export default {
       selectAllClusterIds: false,
     };
   },
-
+  components: { Loading },
   async mounted() {
     try {
       const res = await this.$store.dispatch('management/findAll', {
@@ -238,6 +106,8 @@ export default {
       }
     },
     async installHardeningChart(cluster) {
+      this.loading = true;
+
       const data = {
         charts: [
           {
@@ -266,6 +136,7 @@ export default {
       } catch (e) {
         handleGrowl({ error: e, store: this.$store, overrideStatusText: `AccuKnox Charts are ${e._statusText.toLowerCase()} on ${cluster.name}` });
       }
+      this.loading = false;
     },
     async getAppDetails(clusterId, appName) {
       try {
@@ -324,6 +195,8 @@ export default {
     async installCharts() {
       this.showModal = false;
       this.chartInstalling = true;
+      this.loading = true;
+
 
       const selected = this.clusterDetails.filter(c => this.selectedClusterIds.includes(c.id));
       for (const cluster of selected) {
@@ -380,6 +253,7 @@ export default {
       }
 
       
+      this.loading = false;
 
       this.chartInstalling = false;
     },
@@ -414,6 +288,7 @@ export default {
     async installRepos(clusterId) {
       const name = 'accuknox-charts';
       const opt = { cluster: clusterId };
+      this.loading = true;
 
 
       try {
@@ -573,27 +448,165 @@ export default {
         handleGrowl({ error: e, store: this.$store });
       }
 
+      this.loading = false;
+
     },
 
     async installReposForSelectedClusters() {
+      this.loading = true;
       this.repoInstalling = true;
       const selected = this.clusterDetails.filter(c => this.selectedClusterIds.includes(c.id));
       for (const cluster of selected) {
         await this.installRepos(cluster.id);
       }
       this.repoInstalling = false;
+      this.loading = false;
     },
     async installHardeningChartForSelectedClusters() {
+      this.loading = true;
       this.hardeningChartInstalling = true;
       const selected = this.clusterDetails.filter(c => this.selectedClusterIds.includes(c.id));
       for (const cluster of selected) {
         await this.installHardeningChart(cluster);
       }
       this.hardeningChartInstalling = false;
+      this.loading = false;
     },
   },
 };
 </script>
+
+<template>
+
+  <div  class="container p-4">
+    <div class="button-bar">
+    <button class="btn btn-primary" :disabled="repoInstalling"  @click="installReposForSelectedClusters">
+      Install Repos
+    </button>
+    <button class="btn btn-primary" :disabled="chartInstalling" @click="openModalWithDefaults">
+      Install Charts
+    </button>
+    <button class="btn btn-primary" :disabled="hardeningChartInstalling" @click="installHardeningChartForSelectedClusters">
+      Install Hardening Policies
+    </button>
+  </div>
+    <table class="modern-table">
+      <thead>
+        <tr>
+          <th>
+            <input
+              type="checkbox"
+              v-model="selectAllClusterIds"
+              @change="toggleSelectAllClusterIds"
+            />
+            Select All
+          </th>
+          <th>Repo Status</th>
+          <th>Chart Status</th>
+          <th>Apps Status</th>
+          <th>Hardening Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(cluster, index) in clusterDetails" :key="cluster.id">
+          <td>
+            <input
+                type="checkbox"
+                :value="cluster.id"
+                v-model="selectedClusterIds"
+              />
+            {{ cluster.name }}
+          </td>
+          <td>
+            <span :class="cluster.allReposPresent ? 'status-green' : 'status-red'">
+              <template v-if="cluster.allReposPresent">
+                <a
+                  :href="`/c/${cluster.id}/apps/catalog.cattle.io.clusterrepo/accuknox-charts`"
+                  class="underline text-blue-600 hover:text-blue-800"
+                >
+                  View
+                </a>
+              </template>
+              <template v-else>
+                ❌ Not Installed
+              </template>
+            </span>
+          </td>
+          <td>
+            <span :class="cluster.allChartsPresent ? 'status-green' : 'status-red'">
+              {{ cluster.allChartsPresent ? '✅ Ready' : '❌ Not Ready' }}
+            </span>
+          </td>
+          <td>
+            <span :class="cluster.allAppPresent ? 'status-green' : 'status-red'">
+              <template v-if="cluster.allAppPresent">
+                <a
+                  :href="`/c/${cluster.id}/apps/catalog.cattle.io.app/agents/agents-chart`"
+                  class="underline text-blue-600 hover:text-blue-800"
+                >
+                  View
+                </a>
+              </template>
+              <template v-else>
+                ❌ Not Installed
+              </template>
+            </span>
+          </td>
+          <td>
+            <span :class="cluster.hardeningAvailable ? 'status-green' : 'status-red'">
+              <template v-if="cluster.hardeningAvailable">
+                <router-link
+                  :to="`/c/${cluster.id}/policies`"
+                  class="underline text-blue-600 hover:text-blue-800"
+                >
+                  View
+                </router-link>
+              </template>
+              <template v-else>
+                ❌ Not Installed
+              </template>
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <Loading v-if="loading" />
+    <div v-if="showModal" class="modal-overlay">
+      <div class="modal-content">
+        <h2 class="text-lg font-bold mb-4">AccuKnox Agent Configuration</h2>
+
+        <label>Access Key</label>
+        <input v-model="form.accessKey" class="input" placeholder="Enter Access Key" />
+
+        <label class="mt-4">Cluster Name Prefix</label>
+        <input v-model="form.clusterNamePrefix" class="input" placeholder="Cluster Name Prefix" />
+
+        <label class="mt-4">Token URL</label>
+        <input v-model="form.tokenURL" class="input" placeholder="cwpp.demo.accuknox.com" />
+
+        <label class="mt-4">Spire Host</label>
+        <input v-model="form.spireHost" class="input" placeholder="spire.demo.accuknox.com" />
+
+        <label class="mt-4">PPS Host</label>
+        <input v-model="form.ppsHost" class="input" placeholder="pps.demo.accuknox.com" />
+
+        <label class="mt-4">Knox Gateway</label>
+        <input v-model="form.knoxGateway" class="input" placeholder="knox-gw.demo.accuknox.com:3000" />
+
+        <label class="mt-4 block">Enable Admission Controller</label>
+        <input type="checkbox" v-model="form.admissionController" />
+
+        <label class="mt-4 block">Enable Kyverno</label>
+        <input type="checkbox" v-model="form.kyverno" />
+
+        <div class="mt-6">
+          <button class="btn role-primary" @click="installCharts">Install</button>
+          <button class="btn ml-2" @click="showModal = false">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .button-bar {
