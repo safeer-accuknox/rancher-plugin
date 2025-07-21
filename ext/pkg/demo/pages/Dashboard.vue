@@ -554,6 +554,7 @@ export default {
       this.repoInstalling = false;
     },
     async installHardeningChartForSelectedClusters() {
+      this.hardeningChartInstalling = true;
       const selected = this.clusterDetails.filter(c => this.selectedClusterIds.includes(c.id));
       for (const cluster of selected) {
         await this.installHardeningChart(cluster);

@@ -18,9 +18,8 @@ export function init($plugin: IPlugin, store: any) {
     basicType
   } = $plugin.DSL(store, YOUR_PRODUCT_NAME);
 
-  // registering a top-level product
   product({
-    icon: 'gear',
+    icon: 'pod_security',
     inStore: 'management',
     weight: 100,
     to: {
@@ -32,28 +31,6 @@ export function init($plugin: IPlugin, store: any) {
     }
   });
   
-  // defining a k8s resource as page
-  configureType(YOUR_K8S_RESOURCE_NAME, {
-    displayName: 'some-custom-name-you-wish-to-assign-to-this-resource',
-    isCreatable: true,
-    isEditable:  true,
-    isRemovable: true,
-    showAge:     true,
-    showState:   true,
-    canYaml:     true,
-    customRoute: {
-      name: `${ YOUR_PRODUCT_NAME }-c-cluster-resource`,
-      params: {
-        product: YOUR_PRODUCT_NAME,
-        cluster: BLANK_CLUSTER,
-        resource: YOUR_K8S_RESOURCE_NAME
-      }
-    }
-  });
-
-  
-
-  // creating a custom page
   virtualType({
     labelKey: 'some.translation.key',
     name:     CUSTOM_PAGE_NAME,
@@ -67,5 +44,5 @@ export function init($plugin: IPlugin, store: any) {
   });
 
   // registering the defined pages as side-menu entries
-  basicType([YOUR_K8S_RESOURCE_NAME, CUSTOM_PAGE_NAME]);
+  basicType([CUSTOM_PAGE_NAME]);
 }
