@@ -295,7 +295,8 @@ export default {
       this.showModal = false;
       this.chartInstalling = true;
 
-      for (const cluster of this.clusterDetails) {
+      const selected = this.clusterDetails.filter(c => this.selectedClusterIds.includes(c.id));
+      for (const cluster of selected) {
         const cleanName = cluster.name.replace(/[^a-zA-Z0-9]/g, '');
         const charts = this.getInstallConfig(cleanName);
 
@@ -394,7 +395,8 @@ export default {
 
         const exists = allRepos.find(r => r.id === name);
 
-        await this.createNamespace(clusterId, 'agents')
+        await this.createNamespace(clusterId, 'agents');
+        await this.createNamespace(clusterId, 'kubearmor');
 
         const deploymentPayload = {
             "type": "apps.deployment",
@@ -531,6 +533,8 @@ export default {
           }
         }
 
+        this.checkChartAvailability(clusterId);
+
         this.$store.dispatch('growl/success', {
           title: (`Repo installed in ${clusterId}`),
           message: ''
@@ -543,14 +547,15 @@ export default {
 
     async installReposForSelectedClusters() {
       this.repoInstalling = true;
-      for (const cluster of this.clusterDetails) {
+      const selected = this.clusterDetails.filter(c => this.selectedClusterIds.includes(c.id));
+      for (const cluster of selected) {
         await this.installRepos(cluster.id);
       }
       this.repoInstalling = false;
     },
     async installHardeningChartForSelectedClusters() {
-      this.hardeningChartInstalling = true;
-      for (const cluster of this.clusterDetails) {
+      const selected = this.clusterDetails.filter(c => this.selectedClusterIds.includes(c.id));
+      for (const cluster of selected) {
         await this.installHardeningChart(cluster);
       }
       this.hardeningChartInstalling = false;
