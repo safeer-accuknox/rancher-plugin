@@ -8,6 +8,9 @@
     <button class="btn btn-primary" :disabled="chartInstalling" @click="openModalWithDefaults">
       Install Charts
     </button>
+    <button class="btn btn-primary" :disabled="chartInstalling" @click="installHardeningChartForAllClusters">
+      Install Hardening Policies
+    </button>
   </div>
 
 
@@ -18,6 +21,7 @@
           <th>Repo Status</th>
           <th>Chart Status</th>
           <th>Apps Status</th>
+          <th>Hardening Status</th>
         </tr>
       </thead>
       <tbody>
@@ -36,6 +40,11 @@
           <td>
             <span :class="cluster.allAppPresent ? 'status-green' : 'status-red'">
               {{ cluster.allAppPresent ? '✅ Installed' : '❌ Not Installed' }}
+            </span>
+          </td>
+          <td>
+            <span :class="cluster.hardeningAvailable ? 'status-green' : 'status-red'">
+              {{ cluster.hardeningAvailable ? '✅ Installed' : '❌ Not Installed' }}
             </span>
           </td>
         </tr>
@@ -102,6 +111,7 @@ export default {
       showModal: false,
       repoInstalling: false,
       chartInstalling: false,
+      hardeningChartInstalling: false
     };
   },
 
@@ -132,6 +142,9 @@ export default {
           allAppPresent = !!appDetails?.id;
         }
 
+        const hardeningAppDetails = await this.getAppDetails(cluster.id, `kubearmor/accuknox-cwpp-hardening-policies`)
+        const hardeningAvailable = !!hardeningAppDetails?.id;
+
         clusterDetails.push({
           id: cluster.id,
           name: cluster.spec.displayName,
@@ -139,7 +152,8 @@ export default {
           repos: allRepos,
           allReposPresent: allReposPresent,
           allChartsPresent: allChartsPresent,
-          allAppPresent: allAppPresent
+          allAppPresent: allAppPresent,
+          hardeningAvailable: hardeningAvailable
         });
       }
       this.clusterDetails = clusterDetails
@@ -164,6 +178,36 @@ export default {
         return !!response?.entries;
       } catch {
         return false;
+      }
+    },
+    async installHardeningChart(cluster) {
+      const data = {
+        charts: [
+          {
+            chartName: 'accuknox-cwpp-hardening-policies',
+            version: '0.1.0',
+            releaseName: 'accuknox-cwpp-hardening-policies',
+            values: {}
+          }
+        ],
+        namespace: 'kubearmor',
+        projectId: cluster.systemProjectId,
+        timeout: '600s',
+        wait: true
+      };
+
+      try {
+        await this.$store.dispatch('management/request', {
+          url: `/k8s/clusters/${cluster.id}/v1/catalog.cattle.io.clusterrepos/accuknox-charts?action=install`,
+          method: 'POST',
+          data
+        });
+        this.$store.dispatch('growl/success', {
+          title: 'Hardening Policies Installed',
+          message: 'accuknox-cwpp-hardening-policies installed successfully'
+        });
+      } catch (e) {
+        handleGrowl({ error: e, store: this.$store });
       }
     },
     async getAppDetails(clusterId, appName) {
@@ -307,7 +351,6 @@ export default {
     async installRepos(clusterId) {
       const name = 'accuknox-charts';
       const opt = { cluster: clusterId };
-      this.repoInstalling = true;
 
 
       try {
@@ -464,13 +507,22 @@ export default {
         handleGrowl({ error: e, store: this.$store });
       }
 
-      this.repoInstalling = false;
     },
 
     async installReposForAllClusters() {
+      this.repoInstalling = true;
       for (const cluster of this.clusterDetails) {
         await this.installRepos(cluster.id);
       }
+      this.repoInstalling = false;
+    },
+    async installHardeningChartForAllClusters() {
+      this.hardeningChartInstalling = true;
+      for (const cluster of this.clusterDetails) {
+        console.log(cluster)
+        await this.installHardeningChart(cluster);
+      }
+      this.hardeningChartInstalling = false;
     },
   },
 };
