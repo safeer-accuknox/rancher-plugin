@@ -389,6 +389,9 @@ export default {
                         "targetPort": 8080
                     }
                 ],
+                "selector": {
+                  "app": "accuknox-charts"
+                },
                 "sessionAffinity": "None",
                 "type": "ClusterIP"
             }
