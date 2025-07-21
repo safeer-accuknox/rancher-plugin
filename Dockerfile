@@ -8,7 +8,7 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
 
 ENV HELM_EXPERIMENTAL_OCI=1
 WORKDIR /charts
-RUN helm pull oci://public.ecr.aws/k9v9d5v2/agents-chart --version v0.10.5
+RUN helm pull oci://public.ecr.aws/k9v9d5v2/agents-chart --version v0.10.7
 RUN helm repo add kubearmor https://kubearmor.github.io/charts/ && \
     helm repo update && \
     helm pull kubearmor/kubearmor-operator --version v1.5.7

@@ -176,7 +176,7 @@ export default {
         {
           name: 'accuknox-charts',
           chartName: 'agents-chart',
-          version: 'v0.10.5',
+          version: 'v0.10.7',
           namespace: 'agents',
           values: {
             clusterName: `${this.form.clusterNamePrefix}${clusterName}`,
