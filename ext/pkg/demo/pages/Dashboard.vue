@@ -43,7 +43,17 @@
           </td>
           <td>
             <span :class="cluster.allReposPresent ? 'status-green' : 'status-red'">
-              {{ cluster.allReposPresent ? '✅ Installed' : '❌ Not Installed' }}
+              <template v-if="cluster.allReposPresent">
+                <a
+                  :href="`/c/${cluster.id}/apps/catalog.cattle.io.clusterrepo/accuknox-charts`"
+                  class="underline text-blue-600 hover:text-blue-800"
+                >
+                  View
+                </a>
+              </template>
+              <template v-else>
+                ❌ Not Installed
+              </template>
             </span>
           </td>
           <td>
@@ -53,12 +63,32 @@
           </td>
           <td>
             <span :class="cluster.allAppPresent ? 'status-green' : 'status-red'">
-              {{ cluster.allAppPresent ? '✅ Installed' : '❌ Not Installed' }}
+              <template v-if="cluster.allAppPresent">
+                <a
+                  :href="`/c/${cluster.id}/apps/catalog.cattle.io.app/agents/agents-chart`"
+                  class="underline text-blue-600 hover:text-blue-800"
+                >
+                  View
+                </a>
+              </template>
+              <template v-else>
+                ❌ Not Installed
+              </template>
             </span>
           </td>
           <td>
             <span :class="cluster.hardeningAvailable ? 'status-green' : 'status-red'">
-              {{ cluster.hardeningAvailable ? '✅ Installed' : '❌ Not Installed' }}
+              <template v-if="cluster.hardeningAvailable">
+                <a
+                  :href="`/c/${cluster.id}/apps/catalog.cattle.io.app/kubearmor/accuknox-cwpp-hardening-policies`"
+                  class="underline text-blue-600 hover:text-blue-800"
+                >
+                  View
+                </a>
+              </template>
+              <template v-else>
+                ❌ Not Installed
+              </template>
             </span>
           </td>
         </tr>
@@ -169,7 +199,7 @@ export default {
           allReposPresent: allReposPresent,
           allChartsPresent: allChartsPresent,
           allAppPresent: allAppPresent,
-          hardeningAvailable: hardeningAvailable
+          hardeningAvailable: hardeningAvailable,
         });
       }
       this.clusterDetails = clusterDetails
