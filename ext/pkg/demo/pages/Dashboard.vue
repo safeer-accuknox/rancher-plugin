@@ -2,13 +2,13 @@
   <div class="container p-4">
 
     <div class="button-bar">
-    <button class="btn btn-primary" :disabled="repoInstalling"  @click="installReposForAllClusters">
+    <button class="btn btn-primary" :disabled="repoInstalling"  @click="installReposForSelectedClusters">
       Install Repos
     </button>
     <button class="btn btn-primary" :disabled="chartInstalling" @click="openModalWithDefaults">
       Install Charts
     </button>
-    <button class="btn btn-primary" :disabled="hardeningChartInstalling" @click="installHardeningChartForAllClusters">
+    <button class="btn btn-primary" :disabled="hardeningChartInstalling" @click="installHardeningChartForSelectedClusters">
       Install Hardening Policies
     </button>
   </div>
@@ -17,7 +17,14 @@
     <table class="modern-table">
       <thead>
         <tr>
-          <th>Cluster</th>
+          <th>
+            <input
+              type="checkbox"
+              v-model="selectAllClusterIds"
+              @change="toggleSelectAllClusterIds"
+            />
+            Select All
+          </th>
           <th>Repo Status</th>
           <th>Chart Status</th>
           <th>Apps Status</th>
@@ -26,7 +33,14 @@
       </thead>
       <tbody>
         <tr v-for="(cluster, index) in clusterDetails" :key="cluster.id">
-          <td>{{ cluster.id }}</td>
+          <td>
+            <input
+                type="checkbox"
+                :value="cluster.id"
+                v-model="selectedClusterIds"
+              />
+            {{ cluster.name }}
+          </td>
           <td>
             <span :class="cluster.allReposPresent ? 'status-green' : 'status-red'">
               {{ cluster.allReposPresent ? '✅ Installed' : '❌ Not Installed' }}
@@ -111,7 +125,9 @@ export default {
       showModal: false,
       repoInstalling: false,
       chartInstalling: false,
-      hardeningChartInstalling: false
+      hardeningChartInstalling: false,
+      selectedClusterIds: [],
+      selectAllClusterIds: false,
     };
   },
 
@@ -161,8 +177,19 @@ export default {
       handleGrowl({ error: e, store: this.$store });
     }
   },
-
+  watch: {
+    selectedClusterIds(newVal) {
+      this.selectAllClusterIds = newVal.length === this.clusterDetails.length;
+    }
+  },
   methods: {
+    toggleSelectAllClusterIds() {
+      if (this.selectAllClusterIds) {
+        this.selectedClusterIds = this.clusterDetails.map(c => c.id);
+      } else {
+        this.selectedClusterIds = [];
+      }
+    },
     checkAllReposPresent(allRepos) {
       const requiredRepo = 'accuknox-charts';
       return allRepos.some(r => r.id === requiredRepo);
@@ -514,17 +541,16 @@ export default {
 
     },
 
-    async installReposForAllClusters() {
+    async installReposForSelectedClusters() {
       this.repoInstalling = true;
       for (const cluster of this.clusterDetails) {
         await this.installRepos(cluster.id);
       }
       this.repoInstalling = false;
     },
-    async installHardeningChartForAllClusters() {
+    async installHardeningChartForSelectedClusters() {
       this.hardeningChartInstalling = true;
       for (const cluster of this.clusterDetails) {
-        console.log(cluster)
         await this.installHardeningChart(cluster);
       }
       this.hardeningChartInstalling = false;
